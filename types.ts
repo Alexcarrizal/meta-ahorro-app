@@ -31,9 +31,9 @@ export interface Payment {
   id: string;
   name: string;
   amount: number;
+  paidAmount: number;
   dueDate: string;
   category: string;
   frequency: Frequency;
-  isPaid: boolean;
   color: string;
 }

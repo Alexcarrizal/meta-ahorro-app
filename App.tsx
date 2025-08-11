@@ -1,8 +1,6 @@
-
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from './types';
-import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal } from './components/modals';
+import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
 import CalendarView from './components/CalendarView';
@@ -44,12 +42,29 @@ const App = () => {
   
   const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
   const [goals, setGoals] = useState<SavingsGoal[]>(() => getInitialData('goals_data', []));
-  const [payments, setPayments] = useState<Payment[]>(() => getInitialData('payments_data', []));
+  const [payments, setPayments] = useState<Payment[]>(() => {
+    const initialData = getInitialData('payments_data', []) as any[];
+    // Perform one-time migration for items in the old format
+    return initialData.map(p => {
+        if (p.isPaid !== undefined) { // Old format detected
+            const { isPaid, ...rest } = p;
+            return {
+                ...rest,
+                paidAmount: isPaid ? p.amount : (p.paidAmount || 0),
+            };
+        }
+        if (p.paidAmount === undefined) {
+          p.paidAmount = 0;
+        }
+        return p;
+    });
+  });
 
   const [isGoalModalOpen, setGoalModalOpen] = useState(false);
   const [isProjectionModalOpen, setProjectionModalOpen] = useState(false);
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
   const [isContributionModalOpen, setContributionModalOpen] = useState(false);
+  const [isPaymentContributionModalOpen, setPaymentContributionModalOpen] = useState(false);
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isChangePinOpen, setChangePinOpen] = useState(false);
@@ -59,6 +74,7 @@ const App = () => {
   const [goalToProject, setGoalToProject] = useState<SavingsGoal | null>(null);
   const [goalToContribute, setGoalToContribute] = useState<SavingsGoal | null>(null);
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
+  const [paymentToContribute, setPaymentToContribute] = useState<Payment | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
   const [selectedDateForModal, setSelectedDateForModal] = useState<Date | null>(null);
 
@@ -107,8 +123,10 @@ const App = () => {
 
   const sortedPayments = useMemo(() => {
     return [...payments].sort((a, b) => {
-        if (a.isPaid && !b.isPaid) return 1;
-        if (!a.isPaid && b.isPaid) return -1;
+        const isAPaid = a.paidAmount >= a.amount;
+        const isBPaid = b.paidAmount >= b.amount;
+        if (isAPaid && !isBPaid) return 1;
+        if (!isAPaid && isBPaid) return -1;
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     });
   }, [payments]);
@@ -164,23 +182,25 @@ const App = () => {
     ));
   }, []);
   
-  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => {
-    if (paymentData.id) {
-      setPayments(prev => prev.map(p =>
-        p.id === paymentData.id
-          // Explicitly preserve original isPaid and color to prevent them from being overwritten.
-          ? { ...p, ...paymentData, isPaid: p.isPaid, color: p.color }
-          : p
-      ));
-    } else {
-      setPayments(prev => {
+  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'paidAmount' | 'color'> & { id?: string }) => {
+    if (paymentData.id) { // Editing
+        setPayments(prevPayments => 
+            prevPayments.map(payment => {
+                if (payment.id === paymentData.id) {
+                    return { ...payment, ...paymentData };
+                }
+                return payment;
+            })
+        );
+    } else { // Creating
+      setPayments(currentPayments => {
         const newPayment: Payment = {
           id: crypto.randomUUID(),
-          isPaid: false,
-          color: PAYMENT_COLORS[prev.length % PAYMENT_COLORS.length],
+          paidAmount: 0,
+          color: PAYMENT_COLORS[currentPayments.length % PAYMENT_COLORS.length],
           ...paymentData,
         };
-        return [newPayment, ...prev];
+        return [newPayment, ...currentPayments];
       });
     }
   }, []);
@@ -193,6 +213,19 @@ const App = () => {
   const handleDeletePayment = useCallback((paymentId: string) => {
     setItemToDelete({ id: paymentId, type: 'payment' });
     setConfirmModalOpen(true);
+  }, []);
+
+  const handleOpenPaymentContributionModal = useCallback((payment: Payment) => {
+    setPaymentToContribute(payment);
+    setPaymentContributionModalOpen(true);
+  }, []);
+
+  const handleSavePaymentContribution = useCallback((data: { amount: number; paymentId: string; }) => {
+    setPayments(prev => prev.map(p => 
+      p.id === data.paymentId 
+        ? { ...p, paidAmount: Math.min(p.amount, p.paidAmount + data.amount) } 
+        : p
+    ));
   }, []);
   
   const handleConfirmDelete = useCallback(() => {
@@ -208,10 +241,6 @@ const App = () => {
     setItemToDelete(null);
   }, [itemToDelete]);
 
-  const handleTogglePaid = useCallback((paymentId: string) => {
-    setPayments(prevPayments => prevPayments.map(p => p.id === paymentId ? {...p, isPaid: !p.isPaid} : p));
-  }, []);
-
   const handleCalendarDayClick = useCallback((date: Date) => {
       setSelectedDateForModal(date);
       setDayActionModalOpen(true);
@@ -220,6 +249,7 @@ const App = () => {
   const handleCloseGoalModal = useCallback(() => { setGoalModalOpen(false); setGoalToEdit(null); }, []);
   const handleCloseProjectionModal = useCallback(() => { setProjectionModalOpen(false); setGoalToProject(null); }, []);
   const handleCloseContributionModal = useCallback(() => { setContributionModalOpen(false); setGoalToContribute(null); }, []);
+  const handleClosePaymentContributionModal = useCallback(() => { setPaymentContributionModalOpen(false); setPaymentToContribute(null); }, []);
   const handleClosePaymentModal = useCallback(() => { setPaymentModalOpen(false); setPaymentToEdit(null); setSelectedDateForModal(null) }, []);
   const handleCloseConfirmModal = useCallback(() => { setConfirmModalOpen(false); setItemToDelete(null); }, []);
   const handleCloseDayActionModal = useCallback(() => { setDayActionModalOpen(false); setSelectedDateForModal(null); }, []);
@@ -294,7 +324,7 @@ const App = () => {
              sortedPayments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortedPayments.map(payment => (
-                        <PaymentCard key={payment.id} payment={payment} onTogglePaid={handleTogglePaid} onEdit={handleOpenEditPayment} onDelete={handleDeletePayment} />
+                        <PaymentCard key={payment.id} payment={payment} onEdit={handleOpenEditPayment} onDelete={handleDeletePayment} onContribute={handleOpenPaymentContributionModal}/>
                     ))}
                 </div>
             ) : (
@@ -319,6 +349,7 @@ const App = () => {
       <GoalModal isOpen={isGoalModalOpen} onClose={handleCloseGoalModal} onSave={handleSaveGoal} goalToEdit={goalToEdit} />
       <ProjectionModal isOpen={isProjectionModalOpen} onClose={handleCloseProjectionModal} onSave={handleSaveProjection} goal={goalToProject} />
       <ContributionModal isOpen={isContributionModalOpen} onClose={handleCloseContributionModal} onSave={handleSaveContribution} goal={goalToContribute}/>
+      <PaymentContributionModal isOpen={isPaymentContributionModalOpen} onClose={handleClosePaymentContributionModal} onSave={handleSavePaymentContribution} payment={paymentToContribute} />
       <PaymentModal isOpen={isPaymentModalOpen} onClose={handleClosePaymentModal} onSave={handleSavePayment} paymentToEdit={paymentToEdit} defaultDate={selectedDateForModal}/>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Eliminación" message="¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer." />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} onToggleTheme={handleToggleTheme} onChangePin={() => { setSettingsOpen(false); setChangePinOpen(true); }} onLock={handleLockApp} theme={theme}/>

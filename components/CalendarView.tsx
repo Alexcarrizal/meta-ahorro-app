@@ -35,7 +35,7 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
 
     const events = useMemo(() => {
         const paymentEvents = payments
-            .filter(p => !p.isPaid)
+            .filter(p => p.paidAmount < p.amount)
             .map(p => ({
                 id: `p-${p.id}`,
                 date: new Date(p.dueDate + 'T00:00:00'),

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from './types';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal } from './components/modals';
@@ -165,17 +166,22 @@ const App = () => {
   
   const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => {
     if (paymentData.id) {
-        setPayments(prev => prev.map(p => p.id === paymentData.id ? { ...p, ...paymentData } : p));
+      setPayments(prev => prev.map(p =>
+        p.id === paymentData.id
+          // Explicitly preserve original isPaid and color to prevent them from being overwritten.
+          ? { ...p, ...paymentData, isPaid: p.isPaid, color: p.color }
+          : p
+      ));
     } else {
-        setPayments(prev => {
-            const newPayment: Payment = {
-                id: crypto.randomUUID(),
-                isPaid: false,
-                color: PAYMENT_COLORS[prev.length % PAYMENT_COLORS.length],
-                ...paymentData,
-            };
-            return [newPayment, ...prev];
-        });
+      setPayments(prev => {
+        const newPayment: Payment = {
+          id: crypto.randomUUID(),
+          isPaid: false,
+          color: PAYMENT_COLORS[prev.length % PAYMENT_COLORS.length],
+          ...paymentData,
+        };
+        return [newPayment, ...prev];
+      });
     }
   }, []);
 

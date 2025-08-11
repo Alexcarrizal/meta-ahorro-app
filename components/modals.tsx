@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from '../types';
 import { CloseIcon } from './icons';
@@ -465,4 +466,82 @@ export const ConfirmationModal = ({
       </div>
     </div>
   );
+};
+
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onChangePin: (oldPin: string, newPin: string) => { success: boolean, message: string };
+}
+
+export const SettingsModal = ({ isOpen, onClose, onChangePin }: SettingsModalProps) => {
+    const [oldPin, setOldPin] = useState('');
+    const [newPin, setNewPin] = useState('');
+    const [confirmPin, setConfirmPin] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+
+        if (newPin !== confirmPin) {
+            setError('El nuevo PIN no coincide.');
+            return;
+        }
+        if (newPin.length < 4) {
+            setError('El nuevo PIN debe tener al menos 4 dígitos.');
+            return;
+        }
+
+        const result = onChangePin(oldPin, newPin);
+        if (result.success) {
+            setSuccess(result.message);
+            setOldPin('');
+            setNewPin('');
+            setConfirmPin('');
+            setTimeout(() => {
+                onClose();
+            }, 1500);
+        } else {
+            setError(result.message);
+        }
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            setOldPin('');
+            setNewPin('');
+            setConfirmPin('');
+            setError('');
+            setSuccess('');
+        }
+    }, [isOpen]);
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Ajustes">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-200">Cambiar PIN</h3>
+                <div>
+                    <label htmlFor="old-pin" className="block text-sm font-medium text-gray-300 mb-1">PIN Actual</label>
+                    <input type="password" id="old-pin" value={oldPin} onChange={(e) => setOldPin(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+                </div>
+                <div>
+                    <label htmlFor="new-pin" className="block text-sm font-medium text-gray-300 mb-1">Nuevo PIN</label>
+                    <input type="password" id="new-pin" value={newPin} onChange={(e) => setNewPin(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+                </div>
+                <div>
+                    <label htmlFor="confirm-pin" className="block text-sm font-medium text-gray-300 mb-1">Confirmar Nuevo PIN</label>
+                    <input type="password" id="confirm-pin" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+                </div>
+                {error && <p className="text-sm text-red-400">{error}</p>}
+                {success && <p className="text-sm text-emerald-400">{success}</p>}
+                <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 rounded-md bg-gray-700 text-white font-semibold hover:bg-gray-600 transition-colors">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-400 transition-colors">Guardar Cambios</button>
+                </div>
+            </form>
+        </Modal>
+    );
 };

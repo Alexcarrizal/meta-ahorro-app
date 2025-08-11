@@ -1,10 +1,10 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from './types';
-import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal } from './components/modals';
+import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
-import { LaptopIcon, WalletIcon, PlusIcon, RefreshCwIcon } from './components/icons';
+import { LaptopIcon, WalletIcon, PlusIcon, RefreshCwIcon, CogIcon } from './components/icons';
 
 const futureDate = new Date();
 futureDate.setDate(futureDate.getDate() + 56); // ~8 weeks from now for the projection
@@ -63,7 +63,70 @@ const initialPayments: Payment[] = [
 type ActiveTab = 'goals' | 'payments';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' } | null;
 
+const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boolean, pinLength?: number }) => {
+    const [enteredPin, setEnteredPin] = useState('');
+    const [error, setError] = useState('');
+
+    const handleKeyPress = (key: string) => {
+        setError('');
+        if (key === 'backspace') {
+            setEnteredPin(prev => prev.slice(0, -1));
+        } else if (enteredPin.length < pinLength) {
+            setEnteredPin(prev => prev + key);
+        }
+    };
+
+    useEffect(() => {
+        if (enteredPin.length === pinLength) {
+            if (!onLogin(enteredPin)) {
+                setError('PIN incorrecto. Inténtalo de nuevo.');
+                setTimeout(() => {
+                  setEnteredPin('');
+                }, 700);
+            }
+        }
+    }, [enteredPin, onLogin, pinLength]);
+
+    const PinDots = () => (
+        <div className="flex justify-center items-center gap-4 my-6">
+            {Array.from({ length: pinLength }).map((_, i) => (
+                <div key={i} className={`w-4 h-4 rounded-full transition-all duration-200 ${i < enteredPin.length ? 'bg-emerald-400' : 'bg-gray-600'} ${error ? 'animate-shake' : ''}`}></div>
+            ))}
+        </div>
+    );
+    
+    const KeypadButton = ({ value, onClick }: { value: string, onClick: (val: string) => void }) => (
+        <button onClick={() => onClick(value)} className="text-3xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            {value}
+        </button>
+    );
+
+    return (
+        <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-4">
+             <style>{`.animate-shake { animation: shake 0.5s; } @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }`}</style>
+            <div className="max-w-xs w-full text-center">
+                <h1 className="text-3xl font-bold text-white mb-2">Meta Ahorro</h1>
+                <p className="text-gray-400">Ingresa tu PIN de acceso</p>
+                <PinDots />
+                {error && <p className="text-red-400 text-sm h-5">{error}</p>}
+                {!error && <div className="h-5"></div>}
+                <div className="grid grid-cols-3 gap-4 mt-6">
+                    {'123456789'.split('').map(key => <KeypadButton key={key} value={key} onClick={handleKeyPress} />)}
+                    <div />
+                    <KeypadButton value="0" onClick={handleKeyPress} />
+                    <button onClick={() => handleKeyPress('backspace')} className="text-2xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        &#9003;
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('isAuthenticated') === 'true');
+  const [pin, setPin] = useState('');
   const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
   const [goals, setGoals] = useState<SavingsGoal[]>(initialGoals);
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
@@ -73,12 +136,40 @@ const App = () => {
   const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
   const [isContributionModalOpen, setContributionModalOpen] = useState(false);
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   
   const [goalToEdit, setGoalToEdit] = useState<SavingsGoal | null>(null);
   const [goalToProject, setGoalToProject] = useState<SavingsGoal | null>(null);
   const [goalToContribute, setGoalToContribute] = useState<SavingsGoal | null>(null);
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
+
+  useEffect(() => {
+    let storedPin = localStorage.getItem('appPin');
+    if (!storedPin) {
+        storedPin = '1234'; // PIN por defecto
+        localStorage.setItem('appPin', storedPin);
+    }
+    setPin(storedPin);
+  }, []);
+
+  const handleLogin = (enteredPin: string): boolean => {
+    if (enteredPin === pin) {
+        sessionStorage.setItem('isAuthenticated', 'true');
+        setIsAuthenticated(true);
+        return true;
+    }
+    return false;
+  };
+  
+  const handleChangePin = (oldPin: string, newPin: string): { success: boolean, message: string } => {
+    if (oldPin !== pin) {
+        return { success: false, message: 'El PIN actual es incorrecto.' };
+    }
+    localStorage.setItem('appPin', newPin);
+    setPin(newPin);
+    return { success: true, message: 'PIN actualizado con éxito.' };
+  };
 
   const sortedGoals = useMemo(() => {
     return [...goals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -203,7 +294,10 @@ const App = () => {
     setConfirmModalOpen(false);
     setItemToDelete(null);
   }, []);
-
+  
+  if (!isAuthenticated) {
+    return <PinScreen onLogin={handleLogin} />;
+  }
 
   const TabButton = ({ id, label, icon, active }: { id: ActiveTab; label: string; icon: React.ReactNode; active: boolean }) => {
     const activeClasses = id === 'goals' 
@@ -228,9 +322,14 @@ const App = () => {
     <div className="bg-gray-900 text-white min-h-screen font-sans">
       <header className="p-4 md:p-6 border-b border-gray-800 flex justify-between items-center">
         <h1 className="text-2xl md:text-3xl font-bold">Meta Ahorro</h1>
-        <button className="p-2 rounded-full hover:bg-gray-800 transition-colors">
-            <RefreshCwIcon className="w-5 h-5 text-gray-400"/>
-        </button>
+        <div className="flex items-center gap-2">
+            <button onClick={() => setSettingsModalOpen(true)} className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+                <CogIcon className="w-5 h-5 text-gray-400"/>
+            </button>
+            <button className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+                <RefreshCwIcon className="w-5 h-5 text-gray-400"/>
+            </button>
+        </div>
       </header>
 
       <main className="p-4 md:p-6 lg:p-8">
@@ -332,6 +431,11 @@ const App = () => {
         onConfirm={handleConfirmDelete}
         title="Confirmar Eliminación"
         message="¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer."
+      />
+      <SettingsModal 
+        isOpen={isSettingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        onChangePin={handleChangePin}
       />
     </div>
   );

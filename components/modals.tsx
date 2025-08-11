@@ -477,9 +477,10 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onChangePin: (oldPin: string, newPin: string) => { success: boolean, message: string };
+  onLogout: () => void;
 }
 
-export const SettingsModal = ({ isOpen, onClose, onChangePin }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, onChangePin, onLogout }: SettingsModalProps) => {
     const [oldPin, setOldPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -509,8 +510,8 @@ export const SettingsModal = ({ isOpen, onClose, onChangePin }: SettingsModalPro
             setNewPin('');
             setConfirmPin('');
             setTimeout(() => {
-                onClose();
-            }, 1500);
+                setSuccess('');
+            }, 2000);
         } else {
             setError(result.message);
         }
@@ -528,27 +529,44 @@ export const SettingsModal = ({ isOpen, onClose, onChangePin }: SettingsModalPro
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Ajustes">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Cambiar PIN</h3>
-                <div>
-                    <label htmlFor="old-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PIN Actual</label>
-                    <input type="password" id="old-pin" value={oldPin} onChange={(e) => setOldPin(e.target.value)} className={inputClasses} required />
+            <div className="flex flex-col gap-6">
+                {/* Change PIN Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">Cambiar PIN</h3>
+                    <div>
+                        <label htmlFor="old-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PIN Actual</label>
+                        <input type="password" id="old-pin" value={oldPin} onChange={(e) => setOldPin(e.target.value)} className={inputClasses} required />
+                    </div>
+                    <div>
+                        <label htmlFor="new-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nuevo PIN</label>
+                        <input type="password" id="new-pin" value={newPin} onChange={(e) => setNewPin(e.target.value)} className={inputClasses} required />
+                    </div>
+                    <div>
+                        <label htmlFor="confirm-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Nuevo PIN</label>
+                        <input type="password" id="confirm-pin" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className={inputClasses} required />
+                    </div>
+                    {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
+                    {success && <p className="text-sm text-emerald-500 dark:text-emerald-400">{success}</p>}
+                    <div className="flex justify-end">
+                        <button type="submit" className="px-4 py-2 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-400 transition-colors">Guardar Cambios</button>
+                    </div>
+                </form>
+
+                {/* Session Management */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">Sesión</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Cierra tu sesión para requerir el PIN de acceso nuevamente.</p>
+                    <div className="flex justify-end">
+                        <button 
+                            type="button" 
+                            onClick={onLogout} 
+                            className="w-full sm:w-auto px-4 py-2 rounded-md bg-red-600 text-white font-semibold hover:bg-red-500 transition-colors"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <label htmlFor="new-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nuevo PIN</label>
-                    <input type="password" id="new-pin" value={newPin} onChange={(e) => setNewPin(e.target.value)} className={inputClasses} required />
-                </div>
-                <div>
-                    <label htmlFor="confirm-pin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Nuevo PIN</label>
-                    <input type="password" id="confirm-pin" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className={inputClasses} required />
-                </div>
-                {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
-                {success && <p className="text-sm text-emerald-500 dark:text-emerald-400">{success}</p>}
-                <div className="flex justify-end gap-3 pt-4">
-                    <button type="button" onClick={onClose} className="px-4 py-2 rounded-md bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancelar</button>
-                    <button type="submit" className="px-4 py-2 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-400 transition-colors">Guardar Cambios</button>
-                </div>
-            </form>
+            </div>
         </Modal>
     );
 };

@@ -214,6 +214,12 @@ const App = () => {
     return false;
   };
   
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem('isAuthenticated');
+    setIsAuthenticated(false);
+    setSettingsModalOpen(false);
+  }, []);
+  
   const handleChangePin = (oldPin: string, newPin: string): { success: boolean, message: string } => {
     if (oldPin !== pin) {
         return { success: false, message: 'El PIN actual es incorrecto.' };
@@ -488,6 +494,7 @@ const App = () => {
         isOpen={isSettingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         onChangePin={handleChangePin}
+        onLogout={handleLogout}
       />
     </div>
   );

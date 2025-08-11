@@ -1,0 +1,38 @@
+export enum Priority {
+  High = 'Alta',
+  Medium = 'Media',
+  Low = 'Baja',
+}
+
+export enum Frequency {
+  OneTime = 'Una vez',
+  Weekly = 'Semanal',
+  BiWeekly = 'Quincenal',
+  Monthly = 'Mensual',
+}
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  category: string;
+  priority: Priority;
+  color: string;
+  projection?: {
+    amount: number;
+    frequency: Frequency;
+    targetDate?: string;
+  };
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: string;
+  category: string;
+  frequency: Frequency;
+  isPaid: boolean;
+}

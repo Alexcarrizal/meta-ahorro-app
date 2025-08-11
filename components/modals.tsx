@@ -273,7 +273,7 @@ export const ProjectionModal = ({ isOpen, onClose, onSave, goal }: ProjectionMod
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (payment: Omit<Payment, 'isPaid'> & { id?: string }) => void;
+  onSave: (payment: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => void;
   paymentToEdit?: Payment | null;
 }
 

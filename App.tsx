@@ -47,7 +47,8 @@ const initialPayments: Payment[] = [
         dueDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
         category: 'Vivienda',
         frequency: Frequency.Monthly,
-        isPaid: false
+        isPaid: false,
+        color: 'sky',
     },
     {
         id: 'p2',
@@ -56,7 +57,8 @@ const initialPayments: Payment[] = [
         dueDate: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString(),
         category: 'Servicios',
         frequency: Frequency.Monthly,
-        isPaid: true
+        isPaid: true,
+        color: 'indigo',
     }
 ]
 
@@ -288,16 +290,23 @@ const App = () => {
     ));
   }, []);
   
-  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid'> & { id?: string }) => {
+  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => {
     if (paymentData.id) { // Editing
-        setPayments(prev => prev.map(p => p.id === paymentData.id ? { ...p, ...paymentData, isPaid: p.isPaid } : p));
+        setPayments(prev => prev.map(p => 
+            p.id === paymentData.id 
+                ? { ...p, ...paymentData } 
+                : p
+        ));
     } else { // Creating
-        const newPayment: Payment = {
-            id: crypto.randomUUID(),
-            isPaid: false,
-            ...paymentData,
-        };
-        setPayments(prev => [newPayment, ...prev]);
+        setPayments(prev => {
+            const newPayment: Payment = {
+                id: crypto.randomUUID(),
+                isPaid: false,
+                color: GOAL_COLORS[prev.length % GOAL_COLORS.length],
+                ...paymentData,
+            };
+            return [newPayment, ...prev];
+        });
     }
   }, []);
 

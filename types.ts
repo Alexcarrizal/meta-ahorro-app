@@ -35,4 +35,5 @@ export interface Payment {
   category: string;
   frequency: Frequency;
   isPaid: boolean;
+  color: string;
 }

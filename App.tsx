@@ -4,7 +4,7 @@ import { SavingsGoal, Payment, Priority, Frequency } from './types';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
-import { LaptopIcon, WalletIcon, PlusIcon, RefreshCwIcon, CogIcon, SunIcon, MoonIcon } from './components/icons';
+import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, SunIcon, MoonIcon } from './components/icons';
 
 const futureDate = new Date();
 futureDate.setDate(futureDate.getDate() + 56); // ~8 weeks from now for the projection
@@ -380,9 +380,6 @@ const App = () => {
             </button>
             <button onClick={() => setSettingsModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <CogIcon className="w-5 h-5 text-gray-400"/>
-            </button>
-            <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <RefreshCwIcon className="w-5 h-5 text-gray-400"/>
             </button>
         </div>
       </header>

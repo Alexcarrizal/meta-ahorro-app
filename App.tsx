@@ -66,26 +66,58 @@ type ItemToDelete = { id: string; type: 'goal' | 'payment' } | null;
 const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boolean, pinLength?: number }) => {
     const [enteredPin, setEnteredPin] = useState('');
     const [error, setError] = useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
 
-    const handleKeyPress = (key: string) => {
+    // Focus the hidden input on mount and when clicking the background
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    const handleLoginAttempt = useCallback(() => {
+        if (!onLogin(enteredPin)) {
+            setError('PIN incorrecto. Inténtalo de nuevo.');
+            setTimeout(() => {
+              setEnteredPin('');
+              inputRef.current?.focus();
+            }, 700);
+        }
+    }, [enteredPin, onLogin]);
+    
+    // Auto-submit when the pin is complete
+    useEffect(() => {
+        if (enteredPin.length === pinLength) {
+            handleLoginAttempt();
+        }
+    }, [enteredPin, pinLength, handleLoginAttempt]);
+
+    // Handle form submission (Enter key)
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (enteredPin.length === pinLength) {
+            handleLoginAttempt();
+        }
+    };
+
+    // Handle clicks on the on-screen keypad
+    const handleKeypadPress = (key: string) => {
         setError('');
         if (key === 'backspace') {
             setEnteredPin(prev => prev.slice(0, -1));
         } else if (enteredPin.length < pinLength) {
             setEnteredPin(prev => prev + key);
         }
+        inputRef.current?.focus();
     };
 
-    useEffect(() => {
-        if (enteredPin.length === pinLength) {
-            if (!onLogin(enteredPin)) {
-                setError('PIN incorrecto. Inténtalo de nuevo.');
-                setTimeout(() => {
-                  setEnteredPin('');
-                }, 700);
-            }
+    // Handle keyboard input directly
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Allow only numbers and ensure length constraint
+        if (/^\d*$/.test(value) && value.length <= pinLength) {
+            setError('');
+            setEnteredPin(value);
         }
-    }, [enteredPin, onLogin, pinLength]);
+    };
 
     const PinDots = () => (
         <div className="flex justify-center items-center gap-4 my-6">
@@ -96,29 +128,40 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
     );
     
     const KeypadButton = ({ value, onClick }: { value: string, onClick: (val: string) => void }) => (
-        <button onClick={() => onClick(value)} className="text-3xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <button type="button" onClick={() => onClick(value)} className="text-3xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
             {value}
         </button>
     );
 
     return (
-        <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-4">
+        <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-4" onClick={() => inputRef.current?.focus()}>
              <style>{`.animate-shake { animation: shake 0.5s; } @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }`}</style>
-            <div className="max-w-xs w-full text-center">
+            
+            <form onSubmit={handleSubmit} className="max-w-xs w-full text-center">
+                 <input
+                    ref={inputRef}
+                    type="tel"
+                    value={enteredPin}
+                    onChange={handleInputChange}
+                    maxLength={pinLength}
+                    className="opacity-0 w-0 h-0 p-0 m-0 border-0 absolute"
+                    aria-label="PIN Input"
+                    autoComplete="off"
+                 />
                 <h1 className="text-3xl font-bold text-white mb-2">Meta Ahorro</h1>
                 <p className="text-gray-400">Ingresa tu PIN de acceso</p>
                 <PinDots />
                 {error && <p className="text-red-400 text-sm h-5">{error}</p>}
                 {!error && <div className="h-5"></div>}
                 <div className="grid grid-cols-3 gap-4 mt-6">
-                    {'123456789'.split('').map(key => <KeypadButton key={key} value={key} onClick={handleKeyPress} />)}
+                    {'123456789'.split('').map(key => <KeypadButton key={key} value={key} onClick={handleKeypadPress} />)}
                     <div />
-                    <KeypadButton value="0" onClick={handleKeyPress} />
-                    <button onClick={() => handleKeyPress('backspace')} className="text-2xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <KeypadButton value="0" onClick={handleKeypadPress} />
+                    <button type="button" onClick={() => handleKeypadPress('backspace')} className="text-2xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         &#9003;
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 };

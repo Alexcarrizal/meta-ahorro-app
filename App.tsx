@@ -4,7 +4,7 @@ import { SavingsGoal, Payment, Priority, Frequency } from './types';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
-import { LaptopIcon, WalletIcon, PlusIcon, RefreshCwIcon, CogIcon } from './components/icons';
+import { LaptopIcon, WalletIcon, PlusIcon, RefreshCwIcon, CogIcon, SunIcon, MoonIcon } from './components/icons';
 
 const futureDate = new Date();
 futureDate.setDate(futureDate.getDate() + 56); // ~8 weeks from now for the projection
@@ -62,13 +62,13 @@ const initialPayments: Payment[] = [
 
 type ActiveTab = 'goals' | 'payments';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' } | null;
+type Theme = 'light' | 'dark';
 
 const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boolean, pinLength?: number }) => {
     const [enteredPin, setEnteredPin] = useState('');
     const [error, setError] = useState('');
     const inputRef = React.useRef<HTMLInputElement>(null);
 
-    // Focus the hidden input on mount and when clicking the background
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
@@ -83,14 +83,12 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
         }
     }, [enteredPin, onLogin]);
     
-    // Auto-submit when the pin is complete
     useEffect(() => {
         if (enteredPin.length === pinLength) {
             handleLoginAttempt();
         }
     }, [enteredPin, pinLength, handleLoginAttempt]);
 
-    // Handle form submission (Enter key)
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (enteredPin.length === pinLength) {
@@ -98,7 +96,6 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
         }
     };
 
-    // Handle clicks on the on-screen keypad
     const handleKeypadPress = (key: string) => {
         setError('');
         if (key === 'backspace') {
@@ -109,10 +106,8 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
         inputRef.current?.focus();
     };
 
-    // Handle keyboard input directly
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        // Allow only numbers and ensure length constraint
         if (/^\d*$/.test(value) && value.length <= pinLength) {
             setError('');
             setEnteredPin(value);
@@ -122,19 +117,19 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
     const PinDots = () => (
         <div className="flex justify-center items-center gap-4 my-6">
             {Array.from({ length: pinLength }).map((_, i) => (
-                <div key={i} className={`w-4 h-4 rounded-full transition-all duration-200 ${i < enteredPin.length ? 'bg-emerald-400' : 'bg-gray-600'} ${error ? 'animate-shake' : ''}`}></div>
+                <div key={i} className={`w-4 h-4 rounded-full transition-all duration-200 ${i < enteredPin.length ? 'bg-emerald-400 dark:bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'} ${error ? 'animate-shake' : ''}`}></div>
             ))}
         </div>
     );
     
     const KeypadButton = ({ value, onClick }: { value: string, onClick: (val: string) => void }) => (
-        <button type="button" onClick={() => onClick(value)} className="text-3xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <button type="button" onClick={() => onClick(value)} className="text-3xl font-semibold text-gray-800 dark:text-white bg-gray-200/50 dark:bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
             {value}
         </button>
     );
 
     return (
-        <div className="bg-gray-900 min-h-screen flex flex-col justify-center items-center p-4" onClick={() => inputRef.current?.focus()}>
+        <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col justify-center items-center p-4" onClick={() => inputRef.current?.focus()}>
              <style>{`.animate-shake { animation: shake 0.5s; } @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }`}</style>
             
             <form onSubmit={handleSubmit} className="max-w-xs w-full text-center">
@@ -148,16 +143,16 @@ const PinScreen = ({ onLogin, pinLength = 4 }: { onLogin: (pin: string) => boole
                     aria-label="PIN Input"
                     autoComplete="off"
                  />
-                <h1 className="text-3xl font-bold text-white mb-2">Meta Ahorro</h1>
-                <p className="text-gray-400">Ingresa tu PIN de acceso</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Meta Ahorro</h1>
+                <p className="text-gray-500 dark:text-gray-400">Ingresa tu PIN de acceso</p>
                 <PinDots />
-                {error && <p className="text-red-400 text-sm h-5">{error}</p>}
+                {error && <p className="text-red-500 dark:text-red-400 text-sm h-5">{error}</p>}
                 {!error && <div className="h-5"></div>}
                 <div className="grid grid-cols-3 gap-4 mt-6">
                     {'123456789'.split('').map(key => <KeypadButton key={key} value={key} onClick={handleKeypadPress} />)}
                     <div />
                     <KeypadButton value="0" onClick={handleKeypadPress} />
-                    <button type="button" onClick={() => handleKeypadPress('backspace')} className="text-2xl font-semibold text-white bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <button type="button" onClick={() => handleKeypadPress('backspace')} className="text-2xl font-semibold text-gray-800 dark:text-white bg-gray-200/50 dark:bg-gray-800/50 rounded-full h-20 w-20 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         &#9003;
                     </button>
                 </div>
@@ -173,6 +168,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
   const [goals, setGoals] = useState<SavingsGoal[]>(initialGoals);
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
 
   const [isGoalModalOpen, setGoalModalOpen] = useState(false);
   const [isProjectionModalOpen, setProjectionModalOpen] = useState(false);
@@ -186,6 +182,19 @@ const App = () => {
   const [goalToContribute, setGoalToContribute] = useState<SavingsGoal | null>(null);
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
+  
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
+  };
 
   useEffect(() => {
     let storedPin = localStorage.getItem('appPin');
@@ -344,9 +353,9 @@ const App = () => {
 
   const TabButton = ({ id, label, icon, active }: { id: ActiveTab; label: string; icon: React.ReactNode; active: boolean }) => {
     const activeClasses = id === 'goals' 
-        ? 'bg-gray-800 text-white' 
-        : 'bg-slate-800 text-white';
-    const inactiveClasses = 'bg-gray-900 text-gray-400 hover:bg-gray-800/50 hover:text-white';
+        ? 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white' 
+        : 'bg-slate-50 dark:bg-slate-800 text-gray-900 dark:text-white';
+    const inactiveClasses = 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-800 dark:hover:text-white';
     
     return (
         <button
@@ -362,28 +371,31 @@ const App = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen font-sans">
-      <header className="p-4 md:p-6 border-b border-gray-800 flex justify-between items-center">
+    <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen font-sans">
+      <header className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
         <h1 className="text-2xl md:text-3xl font-bold">Meta Ahorro</h1>
         <div className="flex items-center gap-2">
-            <button onClick={() => setSettingsModalOpen(true)} className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                {theme === 'dark' ? <SunIcon className="w-5 h-5 text-gray-400"/> : <MoonIcon className="w-5 h-5 text-gray-500"/>}
+            </button>
+            <button onClick={() => setSettingsModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <CogIcon className="w-5 h-5 text-gray-400"/>
             </button>
-            <button className="p-2 rounded-full hover:bg-gray-800 transition-colors">
+            <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <RefreshCwIcon className="w-5 h-5 text-gray-400"/>
             </button>
         </div>
       </header>
 
       <main className="p-4 md:p-6 lg:p-8">
-        <div className="flex border-b border-gray-800">
+        <div className="flex border-b border-gray-200 dark:border-gray-800">
           <TabButton id="goals" label="Mis Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} />
           <TabButton id="payments" label="Mis Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} />
         </div>
         
-        <div className={`p-6 rounded-b-lg transition-colors duration-300 ${activeTab === 'goals' ? 'bg-gray-800' : 'bg-slate-800'}`}>
+        <div className={`p-6 rounded-b-lg transition-colors duration-300 ${activeTab === 'goals' ? 'bg-gray-50 dark:bg-gray-800' : 'bg-slate-50 dark:bg-slate-800'}`}>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {activeTab === 'goals' ? 'Mis Metas de Compra' : 'Mis Pagos Programados'}
             </h2>
             <button
@@ -418,10 +430,10 @@ const App = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-700">
-                    <LaptopIcon className="mx-auto w-12 h-12 text-gray-500 mb-4"/>
-                    <h3 className="text-xl font-semibold text-white">No tienes metas de ahorro</h3>
-                    <p className="text-gray-400 mt-1">¡Crea tu primera meta para empezar a ahorrar!</p>
+                <div className="text-center py-16 bg-gray-100/50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                    <LaptopIcon className="mx-auto w-12 h-12 text-gray-500 dark:text-gray-500 mb-4"/>
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes metas de ahorro</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">¡Crea tu primera meta para empezar a ahorrar!</p>
                 </div>
             )
           )}
@@ -434,10 +446,10 @@ const App = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-700">
-                    <WalletIcon className="mx-auto w-12 h-12 text-gray-500 mb-4"/>
-                    <h3 className="text-xl font-semibold text-white">No tienes pagos registrados</h3>
-                    <p className="text-gray-400 mt-1">Añade tus pagos para no olvidar ninguna fecha importante.</p>
+                <div className="text-center py-16 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700">
+                    <WalletIcon className="mx-auto w-12 h-12 text-gray-500 dark:text-gray-500 mb-4"/>
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes pagos registrados</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Añade tus pagos para no olvidar ninguna fecha importante.</p>
                 </div>
             )
           )}

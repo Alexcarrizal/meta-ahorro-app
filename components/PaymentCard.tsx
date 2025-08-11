@@ -50,29 +50,29 @@ const PaymentCard = ({ payment, onTogglePaid, onEdit, onDelete }: PaymentCardPro
   }, []);
 
   return (
-    <div className={`bg-gray-800/50 border border-sky-800/40 rounded-xl p-6 flex flex-col justify-between hover:border-sky-500/50 transition-all duration-300 ${isPaid ? 'opacity-50' : ''}`}>
+    <div className={`bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-sky-800/40 rounded-xl p-6 flex flex-col justify-between hover:border-sky-400 dark:hover:border-sky-500/50 transition-all duration-300 ${isPaid ? 'opacity-50' : ''}`}>
       <div>
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
-            <div className="bg-gray-700 p-3 rounded-lg">
-              <WalletIcon className="w-6 h-6 text-sky-400" />
+            <div className="bg-sky-100 dark:bg-gray-700 p-3 rounded-lg">
+              <WalletIcon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">{name}</h3>
-              <p className="text-sm text-gray-400">{category}</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{name}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{category}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => onDelete(payment.id)} className="text-gray-500 hover:text-red-400 p-1 rounded-full transition-colors">
+            <button onClick={() => onDelete(payment.id)} className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 p-1 rounded-full transition-colors">
               <TrashIcon className="w-5 h-5" />
             </button>
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenuOpen(!isMenuOpen)} className="text-gray-500 hover:text-white p-1 rounded-full transition-colors">
+              <button onClick={() => setMenuOpen(!isMenuOpen)} className="text-gray-400 hover:text-gray-800 dark:text-gray-500 dark:hover:text-white p-1 rounded-full transition-colors">
                 <DotsVerticalIcon className="w-5 h-5" />
               </button>
               {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
-                      <button onClick={() => { onEdit(payment); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 cursor-pointer rounded-md">Editar</button>
+                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                      <button onClick={() => { onEdit(payment); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md">Editar</button>
                   </div>
               )}
             </div>
@@ -80,18 +80,18 @@ const PaymentCard = ({ payment, onTogglePaid, onEdit, onDelete }: PaymentCardPro
         </div>
 
         <div className="space-y-2 mb-4">
-            <p className="text-2xl font-bold text-white">{formatCurrency(amount)}</p>
-            <p className={`text-sm ${isOverdue ? 'text-red-400 font-semibold' : 'text-gray-400'}`}>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(amount)}</p>
+            <p className={`text-sm ${isOverdue ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                 Vence: {formatDate(dueDate)}
             </p>
-            <p className="text-sm text-gray-400">Frecuencia: {frequency}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Frecuencia: {frequency}</p>
         </div>
       </div>
       
       <div className="mt-auto">
          <button 
             onClick={() => onTogglePaid(id)} 
-            className={`w-full text-center font-semibold py-2 px-4 rounded-lg transition-colors ${isPaid ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' : 'bg-sky-500 text-black hover:bg-sky-400'}`}>
+            className={`w-full text-center font-semibold py-2 px-4 rounded-lg transition-colors ${isPaid ? 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500' : 'bg-sky-500 text-black hover:bg-sky-400'}`}>
             {isPaid ? 'Marcar como No Pagado' : 'Marcar como Pagado'}
          </button>
       </div>

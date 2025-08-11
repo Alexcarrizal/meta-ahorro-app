@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DeleteIcon, LockIcon } from './icons';
 
 interface AuthScreenProps {
@@ -20,34 +20,53 @@ export const AuthScreen = ({ hasPin, onSetPin, onUnlockSuccess, storedPin, isMod
         }
     }, [error]);
 
-    const handleNumberClick = (num: string) => {
-        if (pin.length < 4) {
-            setPin(pin + num);
-        }
-    };
+    const handleNumberClick = useCallback((num: string) => {
+        setPin(prevPin => (prevPin.length < 4 ? prevPin + num : prevPin));
+    }, []);
 
-    const handleDeleteClick = () => {
-        setPin(pin.slice(0, -1));
-    };
+    const handleDeleteClick = useCallback(() => {
+        setPin(prevPin => prevPin.slice(0, -1));
+    }, []);
 
-    const handleClearClick = () => {
+    const handleClearClick = useCallback(() => {
         setPin('');
-    };
+    }, []);
 
     useEffect(() => {
-        if (pin.length === 4) {
-            if (hasPin) {
-                if (pin === storedPin) {
-                    onUnlockSuccess?.();
+        const checkPin = () => {
+            if (pin.length === 4) {
+                if (hasPin) {
+                    if (pin === storedPin) {
+                        onUnlockSuccess?.();
+                    } else {
+                        setError('PIN incorrecto');
+                        setPin('');
+                    }
                 } else {
-                    setError('PIN incorrecto');
-                    setPin('');
+                    onSetPin?.(pin);
                 }
-            } else {
-                onSetPin?.(pin);
             }
-        }
+        };
+        checkPin();
     }, [pin, hasPin, storedPin, onSetPin, onUnlockSuccess]);
+    
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key >= '0' && event.key <= '9') {
+                handleNumberClick(event.key);
+            } else if (event.key === 'Backspace') {
+                handleDeleteClick();
+            } else if (event.key === 'Enter' && pin.length === 4) {
+                 // The submission logic is already handled by the useEffect watching `pin`
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleNumberClick, handleDeleteClick, pin]);
+
 
     const PinDots = () => (
         <div className="flex justify-center space-x-4 my-6">
@@ -68,14 +87,14 @@ export const AuthScreen = ({ hasPin, onSetPin, onUnlockSuccess, storedPin, isMod
                     <button
                         key={num}
                         onClick={() => handleNumberClick(num)}
-                        className="p-4 rounded-full text-2xl font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        className="p-4 rounded-full text-2xl font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500"
                     >
                         {num}
                     </button>
                 ))}
-                <button onClick={handleClearClick} className="p-4 rounded-full text-lg font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">C</button>
-                <button onClick={() => handleNumberClick('0')} className="p-4 rounded-full text-2xl font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">0</button>
-                <button onClick={handleDeleteClick} className="p-4 rounded-full flex justify-center items-center bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <button onClick={handleClearClick} className="p-4 rounded-full text-lg font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500">C</button>
+                <button onClick={() => handleNumberClick('0')} className="p-4 rounded-full text-2xl font-bold bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500">0</button>
+                <button onClick={handleDeleteClick} className="p-4 rounded-full flex justify-center items-center bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500">
                     <DeleteIcon className="w-7 h-7" />
                 </button>
             </div>

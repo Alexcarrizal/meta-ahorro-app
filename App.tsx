@@ -1,15 +1,17 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from './types';
-import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal, ChangePinModal } from './components/modals';
+import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
-import { LaptopIcon, WalletIcon, PlusIcon, CogIcon } from './components/icons';
+import CalendarView from './components/CalendarView';
+import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon } from './components/icons';
 import { AuthScreen } from './components/Auth';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
+const PAYMENT_COLORS = ['teal', 'cyan', 'blue', 'lime', 'fuchsia', 'pink'];
 
-const getInitialData = <T,>(key: string, fallback: T[]): T[] => {
+function getInitialData<T>(key: string, fallback: T[]): T[] {
   try {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : fallback;
@@ -17,7 +19,7 @@ const getInitialData = <T,>(key: string, fallback: T[]): T[] => {
     console.error(`Error reading ${key} from localStorage`, error);
     return fallback;
   }
-};
+}
 
 const getInitialTheme = (): 'light' | 'dark' => {
   const storedTheme = localStorage.getItem('theme');
@@ -31,7 +33,7 @@ const getInitialPin = (): string | null => {
     return localStorage.getItem('app_pin');
 };
 
-type ActiveTab = 'goals' | 'payments';
+type ActiveTab = 'goals' | 'payments' | 'calendar';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' } | null;
 
 const App = () => {
@@ -50,12 +52,15 @@ const App = () => {
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isChangePinOpen, setChangePinOpen] = useState(false);
+  const [isDayActionModalOpen, setDayActionModalOpen] = useState(false);
   
   const [goalToEdit, setGoalToEdit] = useState<SavingsGoal | null>(null);
   const [goalToProject, setGoalToProject] = useState<SavingsGoal | null>(null);
   const [goalToContribute, setGoalToContribute] = useState<SavingsGoal | null>(null);
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
+  const [selectedDateForModal, setSelectedDateForModal] = useState<Date | null>(null);
+
 
   useEffect(() => {
     localStorage.setItem('goals_data', JSON.stringify(goals));
@@ -158,16 +163,19 @@ const App = () => {
     ));
   }, []);
   
-  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid'> & { id?: string }) => {
+  const handleSavePayment = useCallback((paymentData: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => {
     if (paymentData.id) {
         setPayments(prev => prev.map(p => p.id === paymentData.id ? { ...p, ...paymentData } : p));
     } else {
-        const newPayment: Payment = {
-            id: crypto.randomUUID(),
-            isPaid: false,
-            ...paymentData,
-        };
-        setPayments(prev => [newPayment, ...prev]);
+        setPayments(prev => {
+            const newPayment: Payment = {
+                id: crypto.randomUUID(),
+                isPaid: false,
+                color: PAYMENT_COLORS[prev.length % PAYMENT_COLORS.length],
+                ...paymentData,
+            };
+            return [newPayment, ...prev];
+        });
     }
   }, []);
 
@@ -197,26 +205,32 @@ const App = () => {
   const handleTogglePaid = useCallback((paymentId: string) => {
     setPayments(prevPayments => prevPayments.map(p => p.id === paymentId ? {...p, isPaid: !p.isPaid} : p));
   }, []);
+
+  const handleCalendarDayClick = useCallback((date: Date) => {
+      setSelectedDateForModal(date);
+      setDayActionModalOpen(true);
+  }, []);
   
   const handleCloseGoalModal = useCallback(() => { setGoalModalOpen(false); setGoalToEdit(null); }, []);
   const handleCloseProjectionModal = useCallback(() => { setProjectionModalOpen(false); setGoalToProject(null); }, []);
   const handleCloseContributionModal = useCallback(() => { setContributionModalOpen(false); setGoalToContribute(null); }, []);
-  const handleClosePaymentModal = useCallback(() => { setPaymentModalOpen(false); setPaymentToEdit(null); }, []);
+  const handleClosePaymentModal = useCallback(() => { setPaymentModalOpen(false); setPaymentToEdit(null); setSelectedDateForModal(null) }, []);
   const handleCloseConfirmModal = useCallback(() => { setConfirmModalOpen(false); setItemToDelete(null); }, []);
+  const handleCloseDayActionModal = useCallback(() => { setDayActionModalOpen(false); setSelectedDateForModal(null); }, []);
+
 
   if (isLocked || !pin) {
     return <AuthScreen hasPin={!!pin} onSetPin={handleSetPin} onUnlockSuccess={handleUnlockSuccess} storedPin={pin} />
   }
 
   const TabButton = ({ id, label, icon, active }: { id: ActiveTab; label: string; icon: React.ReactNode; active: boolean }) => {
-    const activeClasses = id === 'goals' 
-        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white' 
-        : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white';
-    const inactiveClasses = 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-800 dark:hover:text-white';
+    const baseClasses = 'flex items-center gap-2 px-4 md:px-6 py-3 font-semibold rounded-t-lg transition-all border-b-2';
+    const activeClasses = 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-emerald-500';
+    const inactiveClasses = 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-800 dark:hover:text-white border-transparent';
     
     return (
-        <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-t-lg transition-all ${active ? activeClasses : inactiveClasses}`}>
-            {icon} {label}
+        <button onClick={() => setActiveTab(id)} className={`${baseClasses} ${active ? activeClasses : inactiveClasses}`}>
+            {icon} <span className="hidden md:inline">{label}</span>
         </button>
     );
   };
@@ -232,12 +246,13 @@ const App = () => {
 
       <main className="p-4 md:p-6 lg:p-8">
         <div className="flex border-b border-gray-200 dark:border-gray-800">
-          <TabButton id="goals" label="Mis Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} />
-          <TabButton id="payments" label="Mis Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} />
+          <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} />
+          <TabButton id="payments" label="Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} />
+          <TabButton id="calendar" label="Calendario" icon={<CalendarIcon className="w-5 h-5"/>} active={activeTab === 'calendar'} />
         </div>
         
-        <div className={`p-6 rounded-b-lg transition-colors duration-300 ${activeTab === 'goals' ? 'bg-white dark:bg-gray-800' : 'bg-white dark:bg-slate-800'}`}>
-          <div className="flex justify-between items-center mb-6">
+        <div className={`pt-6 rounded-b-lg transition-colors duration-300`}>
+          {activeTab !== 'calendar' && <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {activeTab === 'goals' ? 'Mis Metas de Compra' : 'Mis Pagos Programados'}
             </h2>
@@ -251,7 +266,7 @@ const App = () => {
                 <PlusIcon className="w-5 h-5"/>
                 {activeTab === 'goals' ? 'Nueva Meta' : 'Nuevo Pago'}
             </button>
-          </div>
+          </div>}
 
           {activeTab === 'goals' && (
             sortedGoals.length > 0 ? (
@@ -261,7 +276,7 @@ const App = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 bg-gray-100 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
                     <LaptopIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
                     <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes metas de ahorro</h3>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">¡Crea tu primera meta para empezar a ahorrar!</p>
@@ -277,12 +292,20 @@ const App = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 bg-slate-100 dark:bg-slate-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-700">
+                <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
                     <WalletIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
                     <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes pagos registrados</h3>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Añade tus pagos para no olvidar ninguna fecha importante.</p>
                 </div>
             )
+          )}
+
+          {activeTab === 'calendar' && (
+            <CalendarView 
+              payments={payments} 
+              goals={goals} 
+              onDayClick={handleCalendarDayClick} 
+            />
           )}
         </div>
       </main>
@@ -290,10 +313,25 @@ const App = () => {
       <GoalModal isOpen={isGoalModalOpen} onClose={handleCloseGoalModal} onSave={handleSaveGoal} goalToEdit={goalToEdit} />
       <ProjectionModal isOpen={isProjectionModalOpen} onClose={handleCloseProjectionModal} onSave={handleSaveProjection} goal={goalToProject} />
       <ContributionModal isOpen={isContributionModalOpen} onClose={handleCloseContributionModal} onSave={handleSaveContribution} goal={goalToContribute}/>
-      <PaymentModal isOpen={isPaymentModalOpen} onClose={handleClosePaymentModal} onSave={handleSavePayment} paymentToEdit={paymentToEdit}/>
+      <PaymentModal isOpen={isPaymentModalOpen} onClose={handleClosePaymentModal} onSave={handleSavePayment} paymentToEdit={paymentToEdit} defaultDate={selectedDateForModal}/>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Eliminación" message="¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer." />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} onToggleTheme={handleToggleTheme} onChangePin={() => { setSettingsOpen(false); setChangePinOpen(true); }} onLock={handleLockApp} theme={theme}/>
       {pin && <ChangePinModal isOpen={isChangePinOpen} onClose={() => setChangePinOpen(false)} currentPin={pin} onPinChanged={handleChangePin}/>}
+      <DayActionModal 
+        isOpen={isDayActionModalOpen} 
+        onClose={handleCloseDayActionModal}
+        date={selectedDateForModal}
+        onAddPayment={() => {
+            handleCloseDayActionModal();
+            setPaymentToEdit(null);
+            setPaymentModalOpen(true);
+        }}
+        onAddGoal={() => {
+            handleCloseDayActionModal();
+            setGoalToEdit(null);
+            setGoalModalOpen(true);
+        }}
+       />
     </div>
   );
 };

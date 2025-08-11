@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency } from '../types';
-import { CloseIcon, SunIcon, MoonIcon, LockIcon } from './icons';
+import { CloseIcon, SunIcon, MoonIcon, LockIcon, PlusIcon, WalletIcon, LaptopIcon } from './icons';
 import { AuthScreen } from './Auth';
 
 
@@ -107,6 +107,12 @@ const getButtonColorClass = (color?: string) => {
         rose: 'bg-rose-500 hover:bg-rose-400 text-black',
         indigo: 'bg-indigo-500 hover:bg-indigo-400 text-white',
         purple: 'bg-purple-500 hover:bg-purple-400 text-white',
+        teal: 'bg-teal-500 hover:bg-teal-400 text-white',
+        cyan: 'bg-cyan-500 hover:bg-cyan-400 text-black',
+        blue: 'bg-blue-500 hover:bg-blue-400 text-white',
+        lime: 'bg-lime-500 hover:bg-lime-400 text-black',
+        fuchsia: 'bg-fuchsia-500 hover:bg-fuchsia-400 text-white',
+        pink: 'bg-pink-500 hover:bg-pink-400 text-white',
     };
     return color ? colorMap[color] || colorMap.emerald : colorMap.emerald;
 };
@@ -119,6 +125,12 @@ const getTextColorClass = (color?: string) => {
         rose: 'text-rose-500 dark:text-rose-400',
         indigo: 'text-indigo-500 dark:text-indigo-400',
         purple: 'text-purple-500 dark:text-purple-400',
+        teal: 'text-teal-500 dark:text-teal-400',
+        cyan: 'text-cyan-500 dark:text-cyan-400',
+        blue: 'text-blue-500 dark:text-blue-400',
+        lime: 'text-lime-500 dark:text-lime-400',
+        fuchsia: 'text-fuchsia-500 dark:text-fuchsia-400',
+        pink: 'text-pink-500 dark:text-pink-400',
     };
     return color ? colorMap[color] || colorMap.emerald : colorMap.emerald;
 }
@@ -131,6 +143,12 @@ const getRingColorClass = (color?: string) => {
         rose: 'focus:ring-rose-500 focus:border-rose-500',
         indigo: 'focus:ring-indigo-500 focus:border-indigo-500',
         purple: 'focus:ring-purple-500 focus:border-purple-500',
+        teal: 'focus:ring-teal-500 focus:border-teal-500',
+        cyan: 'focus:ring-cyan-500 focus:border-cyan-500',
+        blue: 'focus:ring-blue-500 focus:border-blue-500',
+        lime: 'focus:ring-lime-500 focus:border-lime-500',
+        fuchsia: 'focus:ring-fuchsia-500 focus:border-fuchsia-500',
+        pink: 'focus:ring-pink-500 focus:border-pink-500',
     };
     return color ? colorMap[color] || colorMap.emerald : colorMap.emerald;
 }
@@ -154,19 +172,20 @@ export const ProjectionModal = ({ isOpen, onClose, onSave, goal }: ProjectionMod
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
-    return tomorrow.toISOString().split('T')[0];
+    const year = tomorrow.getFullYear();
+    const month = (tomorrow.getMonth() + 1).toString().padStart(2, '0');
+    const day = tomorrow.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
   
   useEffect(() => {
     if (goal && isOpen) {
         const defaultDate = new Date();
         defaultDate.setMonth(defaultDate.getMonth() + 1);
-        defaultDate.setMinutes(defaultDate.getMinutes() - defaultDate.getTimezoneOffset());
-
+        
         const initialDateStr = goal.projection?.targetDate 
             ? goal.projection.targetDate
-            : defaultDate.toISOString().split('T')[0];
+            : `${defaultDate.getFullYear()}-${(defaultDate.getMonth() + 1).toString().padStart(2, '0')}-${defaultDate.getDate().toString().padStart(2, '0')}`;
 
         setTargetDate(initialDateStr);
         setFrequency(goal.projection?.frequency || Frequency.BiWeekly);
@@ -182,9 +201,7 @@ export const ProjectionModal = ({ isOpen, onClose, onSave, goal }: ProjectionMod
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const target = new Date(targetDate);
-    target.setMinutes(target.getMinutes() + target.getTimezoneOffset());
-    target.setHours(0,0,0,0);
+    const target = new Date(targetDate + 'T00:00:00'); // Treat as local time
     
     if (target <= today) {
         setCalculatedAmount(0);
@@ -271,34 +288,42 @@ export const ProjectionModal = ({ isOpen, onClose, onSave, goal }: ProjectionMod
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (payment: Omit<Payment, 'isPaid'> & { id?: string }) => void;
+  onSave: (payment: Omit<Payment, 'isPaid' | 'color'> & { id?: string }) => void;
   paymentToEdit?: Payment | null;
+  defaultDate?: Date | null;
 }
 
-export const PaymentModal = ({ isOpen, onClose, onSave, paymentToEdit }: PaymentModalProps) => {
+export const PaymentModal = ({ isOpen, onClose, onSave, paymentToEdit, defaultDate }: PaymentModalProps) => {
     const [name, setName] = useState('');
     const [amount, setAmount] = useState(0);
-    const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dueDate, setDueDate] = useState('');
     const [category, setCategory] = useState('');
     const [frequency, setFrequency] = useState<Frequency>(Frequency.Monthly);
 
+    const formatDateToInput = (date: Date) => {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     useEffect(() => {
-        if (paymentToEdit) {
-            setName(paymentToEdit.name);
-            setAmount(paymentToEdit.amount);
-            const localDate = new Date(paymentToEdit.dueDate);
-            localDate.setMinutes(localDate.getMinutes() + localDate.getTimezoneOffset());
-            setDueDate(localDate.toISOString().split('T')[0]);
-            setCategory(paymentToEdit.category);
-            setFrequency(paymentToEdit.frequency);
-        } else {
-            setName('');
-            setAmount(0);
-            setDueDate(new Date().toISOString().split('T')[0]);
-            setCategory('');
-            setFrequency(Frequency.Monthly);
+        if (isOpen) {
+            if (paymentToEdit) {
+                setName(paymentToEdit.name);
+                setAmount(paymentToEdit.amount);
+                setDueDate(paymentToEdit.dueDate);
+                setCategory(paymentToEdit.category);
+                setFrequency(paymentToEdit.frequency);
+            } else {
+                setName('');
+                setAmount(0);
+                setDueDate(defaultDate ? formatDateToInput(defaultDate) : formatDateToInput(new Date()));
+                setCategory('');
+                setFrequency(Frequency.Monthly);
+            }
         }
-    }, [paymentToEdit, isOpen]);
+    }, [paymentToEdit, isOpen, defaultDate]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -557,6 +582,50 @@ export const ChangePinModal = ({ isOpen, onClose, currentPin, onPinChanged }: Ch
             {step === 2 && <AuthScreen hasPin={false} onSetPin={handleNewPinSet} isModalVersion={true} />}
             {step === 3 && <AuthScreen hasPin={false} onSetPin={handleNewPinConfirm} isModalVersion={true} />}
 
+        </Modal>
+    );
+};
+
+
+interface DayActionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onAddPayment: () => void;
+    onAddGoal: () => void;
+    date: Date | null;
+}
+
+export const DayActionModal = ({ isOpen, onClose, onAddPayment, onAddGoal, date }: DayActionModalProps) => {
+    if (!isOpen || !date) return null;
+
+    const formattedDate = date.toLocaleDateString('es-MX', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Añadir Evento">
+            <div className="space-y-4">
+                <p className="text-center text-gray-600 dark:text-gray-400">
+                    ¿Qué deseas agregar para el <span className="font-bold text-gray-800 dark:text-gray-200">{formattedDate}</span>?
+                </p>
+                <button
+                    onClick={onAddPayment}
+                    className="w-full flex items-center justify-center gap-3 p-3 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-800/60 rounded-lg transition-colors"
+                >
+                    <WalletIcon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+                    <span className="font-semibold text-sky-800 dark:text-sky-200">Nuevo Pago</span>
+                </button>
+                <button
+                    onClick={onAddGoal}
+                    className="w-full flex items-center justify-center gap-3 p-3 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 rounded-lg transition-colors"
+                >
+                    <LaptopIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    <span className="font-semibold text-emerald-800 dark:text-emerald-200">Nueva Meta</span>
+                </button>
+            </div>
         </Modal>
     );
 };

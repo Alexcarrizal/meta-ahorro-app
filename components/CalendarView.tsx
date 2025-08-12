@@ -27,80 +27,41 @@ const tailwindColorClasses: { [key: string]: string } = {
     pink: 'bg-pink-500',
 };
 
-const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+const isSameDay = (date1: Date, date2: Date) => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+};
 
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+interface MonthProps {
+    monthDate: Date;
+    events: { id: string; date: Date; title: string; color: string; type: 'payment' | 'goal' }[];
+    onDayClick: (date: Date) => void;
+}
 
-    const events = useMemo(() => {
-        const paymentEvents = payments
-            .filter(p => p.paidAmount < p.amount)
-            .map(p => ({
-                id: `p-${p.id}`,
-                date: new Date(p.dueDate + 'T00:00:00'),
-                title: p.name,
-                color: p.color,
-                type: 'payment' as const
-            }));
-        
-        const goalEvents = goals
-            .filter(g => g.projection?.targetDate)
-            .map(g => ({
-                id: `g-${g.id}`,
-                date: new Date(g.projection!.targetDate + 'T00:00:00'),
-                title: g.name,
-                color: g.color,
-                type: 'goal' as const
-            }));
-
-        return [...paymentEvents, ...goalEvents];
-    }, [payments, goals]);
-
+const Month = ({ monthDate, events, onDayClick }: MonthProps) => {
     const calendarGrid = useMemo(() => {
+        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
         const days = [];
         const startingDay = firstDayOfMonth.getDay();
 
-        // Add blank days for the start of the month
         for (let i = 0; i < startingDay; i++) {
             days.push(null);
         }
 
-        // Add days of the month
         for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
-            days.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), i));
+            days.push(new Date(monthDate.getFullYear(), monthDate.getMonth(), i));
         }
         return days;
-    }, [currentDate]);
-
-    const handlePrevMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    };
-
-    const handleNextMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    };
-    
-    const isSameDay = (date1: Date, date2: Date) => {
-        return date1.getFullYear() === date2.getFullYear() &&
-               date1.getMonth() === date2.getMonth() &&
-               date1.getDate() === date2.getDate();
-    };
+    }, [monthDate]);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <ChevronLeftIcon className="w-5 h-5" />
-                </button>
-                <h2 className="text-lg font-bold text-center">
-                    {currentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
-                </h2>
-                <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <ChevronRightIcon className="w-5 h-5" />
-                </button>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+        <div>
+            <h3 className="text-lg font-bold text-center mb-4 text-gray-800 dark:text-gray-200">
+                {monthDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+            </h3>
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
                 {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -134,6 +95,66 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
                         </div>
                     );
                 })}
+            </div>
+        </div>
+    );
+};
+
+const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
+    const [currentDate, setCurrentDate] = useState(new Date(new Date().setDate(1)));
+
+    const nextMonthDate = useMemo(() => {
+        return new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    }, [currentDate]);
+
+    const events = useMemo(() => {
+        const paymentEvents = payments
+            .filter(p => p.paidAmount < p.amount)
+            .map(p => ({
+                id: `p-${p.id}`,
+                date: new Date(p.dueDate + 'T00:00:00'),
+                title: p.name,
+                color: p.color,
+                type: 'payment' as const
+            }));
+        
+        const goalEvents = goals
+            .filter(g => g.projection?.targetDate)
+            .map(g => ({
+                id: `g-${g.id}`,
+                date: new Date(g.projection!.targetDate + 'T00:00:00'),
+                title: g.name,
+                color: g.color,
+                type: 'goal' as const
+            }));
+
+        return [...paymentEvents, ...goalEvents];
+    }, [payments, goals]);
+
+    const handlePrevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    };
+
+    return (
+        <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-md max-w-5xl mx-auto">
+            <div className="flex justify-between items-center mb-6 px-4">
+                <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <ChevronLeftIcon className="w-6 h-6" />
+                </button>
+                <h2 className="text-xl font-bold text-center text-gray-900 dark:text-gray-100">
+                    Vista General
+                </h2>
+                <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <ChevronRightIcon className="w-6 h-6" />
+                </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <Month monthDate={currentDate} events={events} onDayClick={onDayClick} />
+                <Month monthDate={nextMonthDate} events={events} onDayClick={onDayClick} />
             </div>
         </div>
     );

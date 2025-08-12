@@ -88,19 +88,19 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-4">
                 <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <ChevronLeftIcon className="w-6 h-6" />
+                    <ChevronLeftIcon className="w-5 h-5" />
                 </button>
-                <h2 className="text-xl font-bold text-center">
+                <h2 className="text-lg font-bold text-center">
                     {currentDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
                 </h2>
                 <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <ChevronRightIcon className="w-6 h-6" />
+                    <ChevronRightIcon className="w-5 h-5" />
                 </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center font-semibold text-gray-600 dark:text-gray-400 mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
                 {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -114,21 +114,21 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
                     return (
                         <div 
                             key={day.toString()} 
-                            className="relative aspect-square border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors p-1.5 flex flex-col"
+                            className="relative aspect-square border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors p-1 flex flex-col"
                             onClick={() => onDayClick(day)}
                         >
-                            <span className={`flex items-center justify-center text-sm font-medium h-6 w-6 rounded-full ${isToday ? 'bg-emerald-500 text-white' : ''}`}>
+                            <span className={`flex items-center justify-center text-xs font-medium h-5 w-5 rounded-full ${isToday ? 'bg-emerald-500 text-white' : ''}`}>
                                 {day.getDate()}
                             </span>
                             <div className="flex-grow overflow-y-auto mt-1 space-y-0.5">
-                                {eventsOnDay.slice(0, 3).map(event => (
+                                {eventsOnDay.slice(0, 2).map(event => (
                                     <div key={event.id} className="flex items-center gap-1">
                                         <div className={`w-1.5 h-1.5 rounded-full ${tailwindColorClasses[event.color] || 'bg-gray-400'}`}></div>
                                         <p className="text-xs truncate text-left text-gray-700 dark:text-gray-300">{event.title}</p>
                                     </div>
                                 ))}
-                                {eventsOnDay.length > 3 && (
-                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">+ {eventsOnDay.length - 3} más</p>
+                                {eventsOnDay.length > 2 && (
+                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">+ {eventsOnDay.length - 2} más</p>
                                 )}
                             </div>
                         </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals';
@@ -5,7 +6,7 @@ import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
 import WishlistCard from './components/WishlistCard';
 import CalendarView from './components/CalendarView';
-import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon } from './components/icons';
+import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons';
 import { AuthScreen } from './components/Auth';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
@@ -128,6 +129,7 @@ const getInitialPin = (): string | null => {
 
 type ActiveTab = 'goals' | 'payments' | 'wishlist' | 'calendar';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' | 'wishlist' } | null;
+type PaymentFilter = 'all_unpaid' | 'urgent' | 'overdue' | 'paid';
 
 const App = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
@@ -154,6 +156,8 @@ const App = () => {
         return p;
     });
   });
+  
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all_unpaid');
 
   const [isGoalModalOpen, setGoalModalOpen] = useState(false);
   const [isProjectionModalOpen, setProjectionModalOpen] = useState(false);
@@ -252,15 +256,39 @@ const App = () => {
     return [...goals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [goals]);
 
-  const sortedPayments = useMemo(() => {
-    return [...payments].sort((a, b) => {
-        const isAPaid = a.paidAmount >= a.amount;
-        const isBPaid = b.paidAmount >= b.amount;
-        if (isAPaid && !isBPaid) return 1;
-        if (!isAPaid && isBPaid) return -1;
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  const filteredPayments = useMemo(() => {
+    const sorted = [...payments].sort((a, b) => {
+      const isAPaid = a.paidAmount >= a.amount;
+      const isBPaid = b.paidAmount >= b.amount;
+      if (isAPaid && !isBPaid) return 1;
+      if (!isAPaid && isBPaid) return -1;
+      if(isAPaid && isBPaid) return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(); // Sort paid descending
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(); // Sort unpaid ascending
     });
-  }, [payments]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return sorted.filter(p => {
+        const isPaid = p.paidAmount >= p.amount;
+        const dueDate = new Date(p.dueDate + 'T00:00:00');
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        switch (paymentFilter) {
+            case 'urgent':
+                return !isPaid && diffDays >= 0 && diffDays <= 7;
+            case 'overdue':
+                return !isPaid && diffDays < 0;
+            case 'paid':
+                return isPaid;
+            case 'all_unpaid':
+            default:
+                return !isPaid;
+        }
+    });
+  }, [payments, paymentFilter]);
+
 
   const sortedWishlist = useMemo(() => {
       return [...wishlist].sort((a, b) => {
@@ -586,6 +614,50 @@ const App = () => {
   }
   
   const headerInfo = getHeaderInfo();
+  
+  const PaymentFilterControls = () => {
+    const filters: { id: PaymentFilter, label: string, icon: React.ReactNode, color: string }[] = [
+      { id: 'all_unpaid', label: 'Pendientes', icon: <ListTodoIcon className="w-5 h-5" />, color: 'text-sky-600 dark:text-sky-400' },
+      { id: 'urgent', label: 'Urgentes', icon: <AlertTriangleIcon className="w-5 h-5" />, color: 'text-amber-600 dark:text-amber-400' },
+      { id: 'overdue', label: 'Vencidos', icon: <HistoryIcon className="w-5 h-5" />, color: 'text-red-600 dark:text-red-400' },
+      { id: 'paid', label: 'Pagados', icon: <CheckCircle2Icon className="w-5 h-5" />, color: 'text-green-600 dark:text-green-400' },
+    ];
+    
+    return (
+      <div className="mb-6 bg-gray-200/50 dark:bg-gray-800/50 p-2 rounded-lg flex flex-wrap justify-center items-center gap-2">
+        {filters.map(filter => {
+          const isActive = paymentFilter === filter.id;
+          return (
+            <button
+              key={filter.id}
+              onClick={() => setPaymentFilter(filter.id)}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold rounded-md transition-all duration-200 ${
+                isActive
+                  ? `bg-white dark:bg-gray-900 shadow ${filter.color}`
+                  : 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50'
+              }`}
+            >
+              {filter.icon}
+              {filter.label}
+            </button>
+          )
+        })}
+      </div>
+    );
+  };
+
+  const getEmptyStateConfig = () => {
+    if (activeTab === 'payments') {
+        switch (paymentFilter) {
+            case 'all_unpaid': return { icon: <WalletIcon/>, title: "¡Todo al día!", message: "No tienes pagos pendientes. ¡Buen trabajo!" };
+            case 'urgent': return { icon: <AlertTriangleIcon/>, title: "Sin pagos urgentes", message: "Ningún pago vence en los próximos 7 días." };
+            case 'overdue': return { icon: <HistoryIcon/>, title: "Sin pagos vencidos", message: "No tienes deudas pasadas. ¡Excelente!" };
+            case 'paid': return { icon: <CheckCircle2Icon/>, title: "Aún no has completado pagos", message: "Completa un pago para verlo en este historial." };
+            default: return { icon: <WalletIcon/>, title: "No tienes pagos registrados", message: "Añade tus pagos para no olvidar ninguna fecha importante." };
+        }
+    }
+    return null;
+  }
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen font-sans">
@@ -617,6 +689,8 @@ const App = () => {
                 {headerInfo.buttonText}
             </button>
           </div>}
+          
+          {activeTab === 'payments' && <PaymentFilterControls />}
 
           {activeTab === 'goals' && (
             sortedGoals.length > 0 ? (
@@ -651,17 +725,17 @@ const App = () => {
           )}
 
           {activeTab === 'payments' && (
-             sortedPayments.length > 0 ? (
+             filteredPayments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedPayments.map(payment => (
+                    {filteredPayments.map(payment => (
                         <PaymentCard key={payment.id} payment={payment} onEdit={handleOpenEditPayment} onDelete={handleDeletePayment} onContribute={handleOpenPaymentContributionModal}/>
                     ))}
                 </div>
             ) : (
                 <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
-                    <WalletIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
-                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes pagos registrados</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Añade tus pagos para no olvidar ninguna fecha importante.</p>
+                    <div className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4">{getEmptyStateConfig()?.icon}</div>
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">{getEmptyStateConfig()?.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">{getEmptyStateConfig()?.message}</p>
                 </div>
             )
           )}

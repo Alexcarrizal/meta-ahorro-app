@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Payment, Frequency } from '../types';
 import { WalletIcon, DotsVerticalIcon, TrashIcon } from './icons';
 
@@ -111,6 +111,31 @@ const PaymentCard = ({ payment, onEdit, onDelete, onContribute }: PaymentCardPro
   const [isMenuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const { urgencyClass, urgencyText } = useMemo(() => {
+    if (isCovered) return { urgencyClass: '', urgencyText: null };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return {
+            urgencyClass: 'border-red-400/50 dark:border-red-500/70 shadow-red-500/10 dark:shadow-red-500/20 shadow-lg',
+            urgencyText: 'Vencido',
+        };
+    }
+    if (diffDays <= 3) {
+        return {
+            urgencyClass: 'border-amber-400/50 dark:border-amber-500/70 shadow-amber-500/10 dark:shadow-amber-500/20 shadow-lg',
+            urgencyText: 'Vence Pronto',
+        };
+    }
+    return { urgencyClass: '', urgencyText: null };
+  }, [dueDate, isCovered]);
+
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -124,7 +149,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onContribute }: PaymentCardPro
   }, []);
 
   return (
-    <div className={`bg-white dark:bg-gray-800/50 border rounded-xl p-6 flex flex-col justify-between transition-all duration-300 ${styles.border} ${isCovered ? 'opacity-60 dark:opacity-50' : ''}`}>
+    <div className={`bg-white dark:bg-gray-800/50 border rounded-xl p-6 flex flex-col justify-between transition-all duration-300 ${styles.border} ${isCovered ? 'opacity-60 dark:opacity-50' : urgencyClass}`}>
       <div>
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-4">
@@ -137,6 +162,15 @@ const PaymentCard = ({ payment, onEdit, onDelete, onContribute }: PaymentCardPro
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {urgencyText && (
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                    urgencyText === 'Vencido'
+                    ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+                    : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                }`}>
+                    {urgencyText}
+                </span>
+            )}
             <button onClick={() => onDelete(payment.id)} className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full transition-colors">
               <TrashIcon className="w-5 h-5" />
             </button>

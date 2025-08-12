@@ -10,6 +10,77 @@ import { AuthScreen } from './components/Auth';
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
 const PAYMENT_COLORS = ['teal', 'cyan', 'blue', 'lime', 'fuchsia', 'pink'];
 
+const sampleGoals: SavingsGoal[] = [
+    {
+        id: 'sample-goal-1',
+        name: 'Nueva Laptop Pro',
+        targetAmount: 45000,
+        savedAmount: 38000,
+        category: 'Tecnología',
+        priority: Priority.High,
+        color: 'emerald',
+        createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
+    },
+    {
+        id: 'sample-goal-2',
+        name: 'Vacaciones en la playa',
+        targetAmount: 25000,
+        savedAmount: 7500,
+        category: 'Viajes',
+        priority: Priority.Medium,
+        color: 'sky',
+        projection: {
+            amount: 1500,
+            frequency: Frequency.BiWeekly,
+            targetDate: new Date(Date.now() + 86400000 * 90).toISOString().split('T')[0], // 90 days from now
+        },
+        createdAt: new Date(Date.now() - 86400000 * 30).toISOString(), // 30 days ago
+    },
+    {
+        id: 'sample-goal-3',
+        name: 'Renovar el celular',
+        targetAmount: 18000,
+        savedAmount: 18000,
+        category: 'Tecnología',
+        priority: Priority.Low,
+        color: 'amber',
+        createdAt: new Date(Date.now() - 86400000 * 60).toISOString(), // 60 days ago
+    },
+];
+
+const samplePayments: Payment[] = [
+    {
+        id: 'sample-payment-1',
+        name: 'Pago Tarjeta de Crédito',
+        amount: 5200,
+        paidAmount: 1000,
+        dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0], // 5 days from now
+        category: 'Finanzas',
+        frequency: Frequency.Monthly,
+        color: 'blue',
+    },
+    {
+        id: 'sample-payment-2',
+        name: 'Suscripción a Streaming',
+        amount: 299,
+        paidAmount: 0,
+        dueDate: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0], // 2 days ago (overdue)
+        category: 'Entretenimiento',
+        frequency: Frequency.Monthly,
+        color: 'teal',
+    },
+    {
+        id: 'sample-payment-3',
+        name: 'Plan de Celular',
+        amount: 450,
+        paidAmount: 450,
+        dueDate: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0], // 15 days ago (paid)
+        category: 'Servicios',
+        frequency: Frequency.OneTime, // Marked as one time because it's paid
+        color: 'pink',
+    },
+];
+
 function getInitialData<T>(key: string, fallback: T[]): T[] {
   try {
     const stored = localStorage.getItem(key);
@@ -41,9 +112,9 @@ const App = () => {
   const [isLocked, setLocked] = useState<boolean>(!!getInitialPin());
   
   const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
-  const [goals, setGoals] = useState<SavingsGoal[]>(() => getInitialData('goals_data', []));
+  const [goals, setGoals] = useState<SavingsGoal[]>(() => getInitialData('goals_data', sampleGoals));
   const [payments, setPayments] = useState<Payment[]>(() => {
-    const initialData = getInitialData('payments_data', []) as any[];
+    const initialData = getInitialData('payments_data', samplePayments) as any[];
     // Perform one-time migration for items in the old format
     return initialData.map(p => {
         if (p.isPaid !== undefined) { // Old format detected
@@ -77,6 +148,33 @@ const App = () => {
   const [paymentToContribute, setPaymentToContribute] = useState<Payment | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
   const [selectedDateForModal, setSelectedDateForModal] = useState<Date | null>(null);
+
+
+  useEffect(() => {
+    // Data sanitization to fix potential duplicate IDs from older app versions.
+    const sanitizeAndSetData = <T extends { id: string }>(
+      data: T[],
+      setData: React.Dispatch<React.SetStateAction<T[]>>
+    ) => {
+      const idMap = new Map<string, boolean>();
+      let needsUpdate = false;
+      const sanitizedData = data.map(item => {
+        if (!item.id || idMap.has(item.id)) {
+          needsUpdate = true;
+          return { ...item, id: crypto.randomUUID() };
+        }
+        idMap.set(item.id, true);
+        return item;
+      });
+
+      if (needsUpdate) {
+        setData(sanitizedData);
+      }
+    };
+
+    sanitizeAndSetData(goals, setGoals);
+    sanitizeAndSetData(payments, setPayments);
+  }, []); // Run only once on mount to clean up data.
 
 
   useEffect(() => {
@@ -174,12 +272,75 @@ const App = () => {
   }, []);
 
   const handleSaveContribution = useCallback((data: { amount: number, goalId: string }) => {
-    const { amount, goalId } = data;
-    setGoals(prevGoals => prevGoals.map(g => 
-        g.id === goalId 
-            ? { ...g, savedAmount: Math.min(g.targetAmount, g.savedAmount + amount) } 
-            : g
-    ));
+    const { amount: contributionAmount, goalId } = data;
+    setGoals(currentGoals => {
+        const goalIndex = currentGoals.findIndex(g => g.id === goalId);
+        if (goalIndex === -1) {
+            return currentGoals;
+        }
+
+        const originalGoal = currentGoals[goalIndex];
+        const newSavedAmount = originalGoal.savedAmount + contributionAmount;
+        const finalSavedAmount = Math.min(originalGoal.targetAmount, newSavedAmount);
+
+        const updatedGoal = {
+            ...originalGoal,
+            savedAmount: finalSavedAmount,
+        };
+
+        const newGoals = [...currentGoals];
+        const isNowFullySaved = finalSavedAmount >= originalGoal.targetAmount;
+
+        if (isNowFullySaved && originalGoal.projection && originalGoal.projection.frequency !== Frequency.OneTime && originalGoal.projection.targetDate) {
+            
+            const currentTargetDate = new Date(originalGoal.projection.targetDate + 'T00:00:00');
+            let nextTargetDate = new Date(currentTargetDate);
+
+            switch (originalGoal.projection.frequency) {
+                case Frequency.Weekly:
+                    nextTargetDate.setDate(nextTargetDate.getDate() + 7);
+                    break;
+                case Frequency.BiWeekly:
+                    nextTargetDate.setDate(nextTargetDate.getDate() + 14);
+                    break;
+                case Frequency.Monthly:
+                    nextTargetDate.setMonth(nextTargetDate.getMonth() + 1);
+                    if (nextTargetDate.getDate() < currentTargetDate.getDate()) {
+                        nextTargetDate.setDate(0);
+                    }
+                    break;
+            }
+
+            const formatDateToInput = (date: Date) => {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            
+            const newRecurringGoal: SavingsGoal = {
+                ...originalGoal,
+                id: crypto.randomUUID(),
+                savedAmount: 0,
+                createdAt: new Date().toISOString(),
+                projection: {
+                    ...originalGoal.projection,
+                    targetDate: formatDateToInput(nextTargetDate),
+                }
+            };
+
+            if (updatedGoal.projection) {
+              updatedGoal.projection.frequency = Frequency.OneTime;
+            }
+            
+            newGoals[goalIndex] = updatedGoal;
+            newGoals.push(newRecurringGoal);
+        } else {
+            newGoals[goalIndex] = updatedGoal;
+        }
+
+        return newGoals;
+    });
   }, []);
   
   const handleSavePayment = useCallback((paymentData: Omit<Payment, 'paidAmount' | 'color'> & { id?: string }) => {
@@ -221,12 +382,75 @@ const App = () => {
   }, []);
 
   const handleSavePaymentContribution = useCallback((data: { amount: number; paymentId: string; }) => {
-    setPayments(prev => prev.map(p => 
-      p.id === data.paymentId 
-        ? { ...p, paidAmount: Math.min(p.amount, p.paidAmount + data.amount) } 
-        : p
-    ));
-  }, []);
+    const { amount: contributionAmount, paymentId } = data;
+    
+    setPayments(currentPayments => {
+        const paymentIndex = currentPayments.findIndex(p => p.id === paymentId);
+        if (paymentIndex === -1) {
+            return currentPayments;
+        }
+
+        const originalPayment = currentPayments[paymentIndex];
+
+        const newPaidAmount = originalPayment.paidAmount + contributionAmount;
+        const finalPaidAmount = Math.min(originalPayment.amount, newPaidAmount);
+
+        const updatedPayment = {
+            ...originalPayment,
+            paidAmount: finalPaidAmount,
+        };
+
+        const newPayments = [...currentPayments];
+        const isNowFullyPaid = finalPaidAmount >= originalPayment.amount;
+
+        if (isNowFullyPaid && originalPayment.frequency !== Frequency.OneTime) {
+            const currentDueDate = new Date(originalPayment.dueDate + 'T00:00:00');
+            let nextDueDate = new Date(currentDueDate);
+
+            switch (originalPayment.frequency) {
+                case Frequency.Weekly:
+                    nextDueDate.setDate(nextDueDate.getDate() + 7);
+                    break;
+                case Frequency.BiWeekly:
+                    nextDueDate.setDate(nextDueDate.getDate() + 14);
+                    break;
+                case Frequency.Monthly:
+                    nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+                    // Adjust if the day of the month changed (e.g. Jan 31 -> Feb 28)
+                    if (nextDueDate.getDate() < currentDueDate.getDate()) {
+                        nextDueDate.setDate(0); // Sets to the last day of the previous month
+                    }
+                    break;
+                default:
+                    newPayments[paymentIndex] = updatedPayment;
+                    return newPayments;
+            }
+
+            const formatDateToInput = (date: Date) => {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            const newRecurringPayment: Payment = {
+                ...originalPayment,
+                id: crypto.randomUUID(),
+                dueDate: formatDateToInput(nextDueDate),
+                paidAmount: 0,
+            };
+
+            updatedPayment.frequency = Frequency.OneTime;
+            
+            newPayments[paymentIndex] = updatedPayment;
+            newPayments.push(newRecurringPayment);
+        } else {
+            newPayments[paymentIndex] = updatedPayment;
+        }
+
+        return newPayments;
+    });
+}, []);
   
   const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete) return;

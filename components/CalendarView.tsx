@@ -61,7 +61,7 @@ const Month = ({ monthDate, events, onDayClick }: MonthProps) => {
             <h3 className="text-xl font-bold text-center mb-4 text-gray-800 dark:text-gray-200">
                 {monthDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
             </h3>
-            <div className="grid grid-cols-7 text-center text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            <div className="grid grid-cols-7 text-center text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">
                 {WEEK_DAYS.map(day => <div key={day} className="py-1">{day}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1.5 flex-grow">
@@ -75,21 +75,21 @@ const Month = ({ monthDate, events, onDayClick }: MonthProps) => {
                     return (
                         <div 
                             key={day.toString()} 
-                            className="relative border-t border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors p-2 flex flex-col min-h-[9rem]"
+                            className="relative border-t border-gray-200 dark:border-gray-700/50 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors p-1 sm:p-2 flex flex-col min-h-[7rem] sm:min-h-[8rem]"
                             onClick={() => onDayClick(day)}
                         >
-                            <span className={`flex items-center justify-center text-sm font-medium h-7 w-7 rounded-full ${isToday ? 'bg-emerald-500 text-white' : 'dark:text-white'}`}>
+                            <span className={`flex items-center justify-center text-xs sm:text-sm font-medium h-6 w-6 sm:h-7 sm:w-7 rounded-full ${isToday ? 'bg-emerald-500 text-white' : 'dark:text-white'}`}>
                                 {day.getDate()}
                             </span>
-                            <div className="flex-grow overflow-y-auto mt-2 space-y-1">
+                            <div className="flex-grow overflow-y-auto mt-1 sm:mt-2 space-y-1">
                                 {eventsOnDay.slice(0, 3).map(event => (
                                     <div key={event.id} className="flex items-center gap-1.5">
-                                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${tailwindColorClasses[event.color] || 'bg-gray-400'}`}></div>
+                                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${tailwindColorClasses[event.color] || 'bg-gray-400'}`}></div>
                                         <p className="text-xs truncate text-left text-gray-700 dark:text-gray-300">{event.title}</p>
                                     </div>
                                 ))}
                                 {eventsOnDay.length > 3 && (
-                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">+ {eventsOnDay.length - 3} más</p>
+                                    <p className="text-[10px] sm:text-xs text-center text-gray-500 dark:text-gray-400 mt-1">+ {eventsOnDay.length - 3} más</p>
                                 )}
                             </div>
                         </div>
@@ -140,21 +140,29 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-md w-full max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-4 px-2">
+        <div className="w-full">
+            <div className="flex justify-between items-center mb-6 px-2">
                 <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
                 <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
-                    Calendario
+                    Vista Mensual
                 </h2>
                 <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                     <ChevronRightIcon className="w-6 h-6" />
                 </button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
-                <Month monthDate={currentDate} events={events} onDayClick={onDayClick} />
-                <Month monthDate={nextMonthDate} events={events} onDayClick={onDayClick} />
+            
+            <div className="flex flex-col lg:flex-row justify-center items-start gap-8">
+                {/* Card for current month */}
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md w-full flex-1">
+                    <Month monthDate={currentDate} events={events} onDayClick={onDayClick} />
+                </div>
+                
+                {/* Card for next month */}
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md w-full flex-1">
+                    <Month monthDate={nextMonthDate} events={events} onDayClick={onDayClick} />
+                </div>
             </div>
         </div>
     );

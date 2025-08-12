@@ -58,13 +58,13 @@ const Month = ({ monthDate, events, onDayClick }: MonthProps) => {
 
     return (
         <div>
-            <h3 className="text-lg font-bold text-center mb-4 text-gray-800 dark:text-gray-200">
+            <h3 className="text-xl font-bold text-center mb-4 text-gray-800 dark:text-gray-200">
                 {monthDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
             </h3>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">
                 {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-2">
                 {calendarGrid.map((day, index) => {
                     if (!day) return <div key={`empty-${index}`} className="border border-transparent"></div>;
                     
@@ -75,21 +75,21 @@ const Month = ({ monthDate, events, onDayClick }: MonthProps) => {
                     return (
                         <div 
                             key={day.toString()} 
-                            className="relative aspect-square border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors p-1 flex flex-col"
+                            className="relative aspect-[4/3] border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors p-2 flex flex-col"
                             onClick={() => onDayClick(day)}
                         >
-                            <span className={`flex items-center justify-center text-xs font-medium h-5 w-5 rounded-full ${isToday ? 'bg-emerald-500 text-white' : ''}`}>
+                            <span className={`flex items-center justify-center text-sm font-medium h-6 w-6 rounded-full ${isToday ? 'bg-emerald-500 text-white' : ''}`}>
                                 {day.getDate()}
                             </span>
-                            <div className="flex-grow overflow-y-auto mt-1 space-y-0.5">
-                                {eventsOnDay.slice(0, 2).map(event => (
-                                    <div key={event.id} className="flex items-center gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${tailwindColorClasses[event.color] || 'bg-gray-400'}`}></div>
+                            <div className="flex-grow overflow-y-auto mt-1.5 space-y-1">
+                                {eventsOnDay.slice(0, 3).map(event => (
+                                    <div key={event.id} className="flex items-center gap-1.5">
+                                        <div className={`w-2 h-2 rounded-full ${tailwindColorClasses[event.color] || 'bg-gray-400'}`}></div>
                                         <p className="text-xs truncate text-left text-gray-700 dark:text-gray-300">{event.title}</p>
                                     </div>
                                 ))}
-                                {eventsOnDay.length > 2 && (
-                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">+ {eventsOnDay.length - 2} más</p>
+                                {eventsOnDay.length > 3 && (
+                                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">+ {eventsOnDay.length - 3} más</p>
                                 )}
                             </div>
                         </div>
@@ -140,12 +140,12 @@ const CalendarView = ({ payments, goals, onDayClick }: CalendarViewProps) => {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-md max-w-5xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-md max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6 px-4">
                 <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                     <ChevronLeftIcon className="w-6 h-6" />
                 </button>
-                <h2 className="text-xl font-bold text-center text-gray-900 dark:text-gray-100">
+                <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
                     Vista General
                 </h2>
                 <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">

@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { SavingsGoal, Payment, Priority, Frequency } from './types';
-import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal } from './components/modals';
+import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types';
+import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals';
 import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
+import WishlistCard from './components/WishlistCard';
 import CalendarView from './components/CalendarView';
-import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon } from './components/icons';
+import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon } from './components/icons';
 import { AuthScreen } from './components/Auth';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
@@ -81,10 +82,32 @@ const samplePayments: Payment[] = [
     },
 ];
 
+const sampleWishlist: WishlistItem[] = [
+    {
+        id: 'sample-wish-1',
+        name: 'Silla de Oficina Ergonómica',
+        category: 'Hogar',
+        priority: Priority.Medium,
+        estimatedAmount: 6000,
+    },
+    {
+        id: 'sample-wish-2',
+        name: 'Curso de Desarrollo Web',
+        category: 'Educación',
+        priority: Priority.High,
+        estimatedAmount: 3500,
+    },
+];
+
 function getInitialData<T>(key: string, fallback: T[]): T[] {
   try {
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
+    if(stored) {
+        return JSON.parse(stored);
+    }
+    // Only set fallback data if no key exists (first time use)
+    localStorage.setItem(key, JSON.stringify(fallback));
+    return fallback;
   } catch (error) {
     console.error(`Error reading ${key} from localStorage`, error);
     return fallback;
@@ -103,8 +126,8 @@ const getInitialPin = (): string | null => {
     return localStorage.getItem('app_pin');
 };
 
-type ActiveTab = 'goals' | 'payments' | 'calendar';
-type ItemToDelete = { id: string; type: 'goal' | 'payment' } | null;
+type ActiveTab = 'goals' | 'payments' | 'wishlist' | 'calendar';
+type ItemToDelete = { id: string; type: 'goal' | 'payment' | 'wishlist' } | null;
 
 const App = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
@@ -113,6 +136,7 @@ const App = () => {
   
   const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
   const [goals, setGoals] = useState<SavingsGoal[]>(() => getInitialData('goals_data', sampleGoals));
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getInitialData('wishlist_data', sampleWishlist));
   const [payments, setPayments] = useState<Payment[]>(() => {
     const initialData = getInitialData('payments_data', samplePayments) as any[];
     // Perform one-time migration for items in the old format
@@ -140,12 +164,14 @@ const App = () => {
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isChangePinOpen, setChangePinOpen] = useState(false);
   const [isDayActionModalOpen, setDayActionModalOpen] = useState(false);
+  const [isWishlistModalOpen, setWishlistModalOpen] = useState(false);
   
   const [goalToEdit, setGoalToEdit] = useState<SavingsGoal | null>(null);
   const [goalToProject, setGoalToProject] = useState<SavingsGoal | null>(null);
   const [goalToContribute, setGoalToContribute] = useState<SavingsGoal | null>(null);
   const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
   const [paymentToContribute, setPaymentToContribute] = useState<Payment | null>(null);
+  const [wishlistItemToEdit, setWishlistItemToEdit] = useState<WishlistItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete>(null);
   const [selectedDateForModal, setSelectedDateForModal] = useState<Date | null>(null);
 
@@ -154,7 +180,8 @@ const App = () => {
     // Data sanitization to fix potential duplicate IDs from older app versions.
     const sanitizeAndSetData = <T extends { id: string }>(
       data: T[],
-      setData: React.Dispatch<React.SetStateAction<T[]>>
+      setData: React.Dispatch<React.SetStateAction<T[]>>,
+      storageKey: string
     ) => {
       const idMap = new Map<string, boolean>();
       let needsUpdate = false;
@@ -169,11 +196,13 @@ const App = () => {
 
       if (needsUpdate) {
         setData(sanitizedData);
+        localStorage.setItem(storageKey, JSON.stringify(sanitizedData));
       }
     };
 
-    sanitizeAndSetData(goals, setGoals);
-    sanitizeAndSetData(payments, setPayments);
+    sanitizeAndSetData(goals, setGoals, 'goals_data');
+    sanitizeAndSetData(payments, setPayments, 'payments_data');
+    sanitizeAndSetData(wishlist, setWishlist, 'wishlist_data');
   }, []); // Run only once on mount to clean up data.
 
 
@@ -184,6 +213,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('payments_data', JSON.stringify(payments));
   }, [payments]);
+  
+  useEffect(() => {
+    localStorage.setItem('wishlist_data', JSON.stringify(wishlist));
+  }, [wishlist]);
   
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
@@ -228,6 +261,13 @@ const App = () => {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     });
   }, [payments]);
+
+  const sortedWishlist = useMemo(() => {
+      return [...wishlist].sort((a, b) => {
+          const priorityOrder = { [Priority.High]: 1, [Priority.Medium]: 2, [Priority.Low]: 3 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+      });
+  }, [wishlist]);
 
   const handleSaveGoal = useCallback((goalData: Omit<SavingsGoal, 'savedAmount' | 'createdAt' | 'projection' | 'color'> & { id?: string }) => {
     if (goalData.id) { // Editing
@@ -451,6 +491,40 @@ const App = () => {
         return newPayments;
     });
 }, []);
+
+  const handleSaveWishlistItem = useCallback((itemData: Omit<WishlistItem, 'id'> & { id?: string }) => {
+    if (itemData.id) { // Editing
+        setWishlist(prev => prev.map(item => item.id === itemData.id ? { ...item, ...itemData } : item));
+    } else { // Creating
+        setWishlist(prev => [{ id: crypto.randomUUID(), ...itemData }, ...prev]);
+    }
+  }, []);
+
+  const handleOpenEditWishlistItem = useCallback((item: WishlistItem) => {
+    setWishlistItemToEdit(item);
+    setWishlistModalOpen(true);
+  }, []);
+
+  const handleDeleteWishlistItem = useCallback((itemId: string) => {
+    setItemToDelete({ id: itemId, type: 'wishlist' });
+    setConfirmModalOpen(true);
+  }, []);
+  
+  const handleMoveToGoal = useCallback((item: WishlistItem) => {
+      const newGoal: SavingsGoal = {
+          id: crypto.randomUUID(),
+          name: item.name,
+          targetAmount: item.estimatedAmount || 0,
+          savedAmount: 0,
+          category: item.category,
+          priority: item.priority,
+          color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
+          createdAt: new Date().toISOString(),
+      };
+      setGoals(prev => [newGoal, ...prev]);
+      setWishlist(prev => prev.filter(w => w.id !== item.id));
+      setActiveTab('goals');
+  }, [goals]);
   
   const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete) return;
@@ -459,6 +533,8 @@ const App = () => {
       setGoals(prevGoals => prevGoals.filter(g => g.id !== itemToDelete.id));
     } else if (itemToDelete.type === 'payment') {
       setPayments(prevPayments => prevPayments.filter(p => p.id !== itemToDelete.id));
+    } else if (itemToDelete.type === 'wishlist') {
+      setWishlist(prevWishlist => prevWishlist.filter(w => w.id !== itemToDelete.id));
     }
 
     setConfirmModalOpen(false);
@@ -477,15 +553,16 @@ const App = () => {
   const handleClosePaymentModal = useCallback(() => { setPaymentModalOpen(false); setPaymentToEdit(null); setSelectedDateForModal(null) }, []);
   const handleCloseConfirmModal = useCallback(() => { setConfirmModalOpen(false); setItemToDelete(null); }, []);
   const handleCloseDayActionModal = useCallback(() => { setDayActionModalOpen(false); setSelectedDateForModal(null); }, []);
+  const handleCloseWishlistModal = useCallback(() => { setWishlistModalOpen(false); setWishlistItemToEdit(null); }, []);
 
 
   if (isLocked || !pin) {
     return <AuthScreen hasPin={!!pin} onSetPin={handleSetPin} onUnlockSuccess={handleUnlockSuccess} storedPin={pin} />
   }
 
-  const TabButton = ({ id, label, icon, active }: { id: ActiveTab; label: string; icon: React.ReactNode; active: boolean }) => {
+  const TabButton = ({ id, label, icon, active, colorClass }: { id: ActiveTab; label: string; icon: React.ReactNode; active: boolean, colorClass: string }) => {
     const baseClasses = 'flex items-center gap-2 px-4 md:px-6 py-3 font-semibold rounded-t-lg transition-all border-b-2';
-    const activeClasses = 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-emerald-500';
+    const activeClasses = `bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${colorClass}`;
     const inactiveClasses = 'bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-800 dark:hover:text-white border-transparent';
     
     return (
@@ -494,6 +571,21 @@ const App = () => {
         </button>
     );
   };
+  
+  const getHeaderInfo = () => {
+    switch(activeTab) {
+        case 'goals':
+            return { title: 'Mis Metas de Compra', buttonText: 'Nueva Meta', buttonClass: 'bg-emerald-500 hover:bg-emerald-400', onClick: () => { setGoalToEdit(null); setGoalModalOpen(true); } };
+        case 'payments':
+            return { title: 'Mis Pagos Programados', buttonText: 'Nuevo Pago', buttonClass: 'bg-sky-500 hover:bg-sky-400', onClick: () => { setPaymentToEdit(null); setPaymentModalOpen(true); } };
+        case 'wishlist':
+            return { title: 'Mi Lista de Deseos', buttonText: 'Nuevo Deseo', buttonClass: 'bg-indigo-500 hover:bg-indigo-600 text-white', onClick: () => { setWishlistItemToEdit(null); setWishlistModalOpen(true); } };
+        default:
+            return null;
+    }
+  }
+  
+  const headerInfo = getHeaderInfo();
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen font-sans">
@@ -506,25 +598,23 @@ const App = () => {
 
       <main className="p-4 md:p-6 lg:p-8">
         <div className="flex border-b border-gray-200 dark:border-gray-800">
-          <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} />
-          <TabButton id="payments" label="Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} />
-          <TabButton id="calendar" label="Calendario" icon={<CalendarIcon className="w-5 h-5"/>} active={activeTab === 'calendar'} />
+          <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} colorClass="border-emerald-500" />
+          <TabButton id="payments" label="Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} colorClass="border-sky-500" />
+          <TabButton id="wishlist" label="Deseos" icon={<ClipboardListIcon className="w-5 h-5"/>} active={activeTab === 'wishlist'} colorClass="border-indigo-500" />
+          <TabButton id="calendar" label="Calendario" icon={<CalendarIcon className="w-5 h-5"/>} active={activeTab === 'calendar'} colorClass="border-rose-500" />
         </div>
         
         <div className={`pt-6 rounded-b-lg transition-colors duration-300`}>
-          {activeTab !== 'calendar' && <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
+          {headerInfo && <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {activeTab === 'goals' ? 'Mis Metas de Compra' : 'Mis Pagos Programados'}
+                {headerInfo.title}
             </h2>
             <button
-                onClick={() => {
-                  if (activeTab === 'goals') { setGoalToEdit(null); setGoalModalOpen(true); } 
-                  else { setPaymentToEdit(null); setPaymentModalOpen(true); }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 text-black font-bold rounded-lg transition-colors ${activeTab === 'goals' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-sky-500 hover:bg-sky-400'}`}
+                onClick={headerInfo.onClick}
+                className={`flex items-center gap-2 px-4 py-2 text-black font-bold rounded-lg transition-colors ${headerInfo.buttonClass}`}
             >
                 <PlusIcon className="w-5 h-5"/>
-                {activeTab === 'goals' ? 'Nueva Meta' : 'Nuevo Pago'}
+                {headerInfo.buttonText}
             </button>
           </div>}
 
@@ -540,6 +630,22 @@ const App = () => {
                     <LaptopIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
                     <h3 className="text-xl font-semibold text-gray-800 dark:text-white">No tienes metas de ahorro</h3>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">¡Crea tu primera meta para empezar a ahorrar!</p>
+                </div>
+            )
+          )}
+          
+          {activeTab === 'wishlist' && (
+            sortedWishlist.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sortedWishlist.map(item => (
+                        <WishlistCard key={item.id} item={item} onEdit={handleOpenEditWishlistItem} onDelete={handleDeleteWishlistItem} onMoveToGoal={handleMoveToGoal} />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+                    <ClipboardListIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Tu lista de deseos está vacía</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">¡Añade algo que te gustaría comprar en el futuro!</p>
                 </div>
             )
           )}
@@ -571,6 +677,7 @@ const App = () => {
       </main>
 
       <GoalModal isOpen={isGoalModalOpen} onClose={handleCloseGoalModal} onSave={handleSaveGoal} goalToEdit={goalToEdit} />
+      <WishlistModal isOpen={isWishlistModalOpen} onClose={handleCloseWishlistModal} onSave={handleSaveWishlistItem} itemToEdit={wishlistItemToEdit} />
       <ProjectionModal isOpen={isProjectionModalOpen} onClose={handleCloseProjectionModal} onSave={handleSaveProjection} goal={goalToProject} />
       <ContributionModal isOpen={isContributionModalOpen} onClose={handleCloseContributionModal} onSave={handleSaveContribution} goal={goalToContribute}/>
       <PaymentContributionModal isOpen={isPaymentContributionModalOpen} onClose={handleClosePaymentContributionModal} onSave={handleSavePaymentContribution} payment={paymentToContribute} />

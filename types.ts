@@ -11,6 +11,14 @@ export enum Frequency {
   Monthly = 'Mensual',
 }
 
+export interface WishlistItem {
+  id: string;
+  name: string;
+  category: string;
+  priority: Priority;
+  estimatedAmount?: number;
+}
+
 export interface SavingsGoal {
   id: string;
   name: string;

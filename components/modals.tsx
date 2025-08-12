@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
-import { SavingsGoal, Payment, Priority, Frequency } from '../types';
+import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from '../types';
 import { CloseIcon, SunIcon, MoonIcon, LockIcon, PlusIcon, WalletIcon, LaptopIcon } from './icons';
 import { AuthScreen } from './Auth';
 
@@ -93,6 +94,78 @@ export const GoalModal = ({ isOpen, onClose, onSave, goalToEdit }: GoalModalProp
         <div className="flex justify-end gap-3 pt-4">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancelar</button>
           <button type="submit" className="px-4 py-2 rounded-md bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors">Guardar Meta</button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+interface WishlistModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (item: Omit<WishlistItem, 'id'> & { id?: string }) => void;
+  itemToEdit?: WishlistItem | null;
+}
+
+export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistModalProps) => {
+  const [name, setName] = useState('');
+  const [estimatedAmount, setEstimatedAmount] = useState<number | string>('');
+  const [category, setCategory] = useState('');
+  const [priority, setPriority] = useState<Priority>(Priority.Medium);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (itemToEdit) {
+        setName(itemToEdit.name);
+        setEstimatedAmount(itemToEdit.estimatedAmount || '');
+        setCategory(itemToEdit.category);
+        setPriority(itemToEdit.priority);
+      } else {
+        setName('');
+        setEstimatedAmount('');
+        setCategory('');
+        setPriority(Priority.Medium);
+      }
+    }
+  }, [itemToEdit, isOpen]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      id: itemToEdit?.id,
+      name,
+      estimatedAmount: Number(estimatedAmount) || undefined,
+      category,
+      priority,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={itemToEdit ? 'Editar Deseo' : 'Nuevo Deseo'}>
+      <p className="text-gray-600 dark:text-gray-400 mb-6">{itemToEdit ? 'Actualiza los detalles de este artículo.' : 'Añade un artículo a tu lista de deseos para futuras compras.'}</p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="wish-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del artículo</label>
+          <input type="text" id="wish-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Silla de Oficina Ergonómica" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+        </div>
+        <div>
+          <label htmlFor="wish-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Costo Estimado (MXN) <span className="text-gray-400">(Opcional)</span></label>
+          <input type="number" id="wish-amount" value={estimatedAmount} onChange={(e) => setEstimatedAmount(e.target.value)} placeholder="5000" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+        </div>
+        <div>
+          <label htmlFor="wish-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+          <input type="text" id="wish-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ej. Hogar y Oficina" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+        </div>
+        <div>
+          <label htmlFor="wish-priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioridad</label>
+          <select id="wish-priority" value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none" required>
+            {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div className="flex justify-end gap-3 pt-4">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Cancelar</button>
+          <button type="submit" className="px-4 py-2 rounded-md bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors">Guardar Deseo</button>
         </div>
       </form>
     </Modal>

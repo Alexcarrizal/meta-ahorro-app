@@ -1,6 +1,5 @@
-
 import React, { useMemo } from 'react';
-import { Payment, Frequency } from '../types.ts';
+import { Payment } from '../types.ts';
 import { WalletIcon, CheckCircle2Icon, AlertTriangleIcon } from './icons.tsx';
 
 interface DashboardPaymentItemProps {
@@ -16,24 +15,23 @@ const formatCurrency = (amount: number) => {
 };
 
 const DashboardPaymentItem = ({ payment, onContribute }: DashboardPaymentItemProps) => {
-  const { name, amount, paidAmount, dueDate, frequency } = payment;
+  const { name, amount, paidAmount, dueDate } = payment;
   const isPaid = paidAmount >= amount;
+  const remainingAmount = amount - paidAmount;
 
   const {
-    progress,
-    daysRemainingText,
+    statusIcon,
+    iconColor,
     statusText,
     statusColor,
-    progressColor,
-    borderColor
+    borderColor,
   } = useMemo(() => {
     if (isPaid) {
       return {
-        progress: 100,
-        daysRemainingText: 'Completado',
+        statusIcon: <CheckCircle2Icon className="w-6 h-6" />,
+        iconColor: 'text-green-500 dark:text-green-400',
         statusText: 'Pagado',
         statusColor: 'text-green-600 dark:text-green-400',
-        progressColor: 'bg-green-500',
         borderColor: 'border-gray-200 dark:border-gray-700'
       };
     }
@@ -45,75 +43,34 @@ const DashboardPaymentItem = ({ payment, onContribute }: DashboardPaymentItemPro
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    let cycleStartDate = new Date(due);
-    let cycleLengthDays = 30;
-
-    switch (frequency) {
-        case Frequency.Weekly:
-            cycleStartDate.setDate(due.getDate() - 7);
-            cycleLengthDays = 7;
-            break;
-        case Frequency.BiWeekly:
-            cycleStartDate.setDate(due.getDate() - 14);
-            cycleLengthDays = 14;
-            break;
-        case Frequency.Monthly:
-            cycleStartDate.setMonth(due.getMonth() - 1);
-            const tempDate = new Date(due);
-            tempDate.setDate(0);
-            cycleLengthDays = tempDate.getDate();
-            break;
-        case Frequency.Annual:
-            cycleStartDate.setFullYear(due.getFullYear() - 1);
-            cycleLengthDays = (new Date(due.getFullYear(), 1, 29).getDate() === 29 || new Date(cycleStartDate.getFullYear(), 1, 29).getDate() === 29) ? 366 : 365;
-            break;
-        case Frequency.OneTime:
-        default:
-            cycleStartDate = new Date();
-            cycleStartDate.setDate(due.getDate() - 30);
-            cycleLengthDays = 30;
-            break;
-    }
-
-    const elapsed = today.getTime() - cycleStartDate.getTime();
-    const elapsedDays = Math.max(0, Math.floor(elapsed / (1000 * 60 * 60 * 24)));
-    const currentProgress = Math.min(100, (elapsedDays / cycleLengthDays) * 100);
-
-    let currentStatusText = `Vence en ${diffDays} días`;
-    let currentDaysRemainingText = `${diffDays} días restantes`;
-    let currentStatusColor = 'text-gray-500 dark:text-gray-400';
-    let currentProgressColor = 'bg-sky-500';
-    let currentBorderColor = 'border-gray-200 dark:border-gray-700/80 hover:border-sky-400 dark:hover:border-sky-500/50';
-
     if (diffDays < 0) {
-      currentStatusText = `Vencido hace ${Math.abs(diffDays)} día(s)`;
-      currentDaysRemainingText = `Vencido`;
-      currentStatusColor = 'text-red-500 dark:text-red-400';
-      currentProgressColor = 'bg-red-500';
-      currentBorderColor = 'border-red-500/50';
-    } else if (diffDays <= 3) {
-        currentStatusText = diffDays === 0 ? 'Vence hoy' : `Vence en ${diffDays} día(s)`;
-        currentDaysRemainingText = diffDays === 0 ? 'Vence hoy' : `${diffDays} días restantes`;
-        currentStatusColor = 'text-red-500 dark:text-red-400';
-        currentProgressColor = 'bg-red-500';
-        currentBorderColor = 'border-red-500/50';
-    } else if (diffDays <= 7) {
-      currentStatusText = `Vence en ${diffDays} día(s)`;
-      currentDaysRemainingText = `${diffDays} días restantes`;
-      currentStatusColor = 'text-amber-500 dark:text-amber-400';
-      currentProgressColor = 'bg-amber-500';
-      currentBorderColor = 'border-amber-500/50';
+      return {
+        statusIcon: <AlertTriangleIcon className="w-6 h-6" />,
+        iconColor: 'text-red-500 dark:text-red-400',
+        statusText: `Vencido hace ${Math.abs(diffDays)} día(s)`,
+        statusColor: 'text-red-500 dark:text-red-400',
+        borderColor: 'border-red-500/50'
+      };
+    }
+    if (diffDays <= 3) {
+      return {
+        statusIcon: <AlertTriangleIcon className="w-6 h-6" />,
+        iconColor: 'text-amber-500 dark:text-amber-400',
+        statusText: diffDays === 0 ? 'Vence hoy' : `Vence en ${diffDays} día(s)`,
+        statusColor: 'text-amber-500 dark:text-amber-400',
+        borderColor: 'border-amber-500/50'
+      };
     }
     
+    // Default case (more than 3 days left)
     return {
-      progress: currentProgress,
-      daysRemainingText: currentDaysRemainingText,
-      statusText: currentStatusText,
-      statusColor: currentStatusColor,
-      progressColor: currentProgressColor,
-      borderColor: currentBorderColor
+      statusIcon: <WalletIcon className="w-6 h-6" />,
+      iconColor: 'text-sky-500 dark:text-sky-400',
+      statusText: `Vence en ${diffDays} días`,
+      statusColor: 'text-gray-500 dark:text-gray-400',
+      borderColor: 'border-gray-200 dark:border-gray-700/80 hover:border-sky-400 dark:hover:border-sky-500/50'
     };
-  }, [payment]);
+  }, [isPaid, dueDate]);
 
   const buttonColor = useMemo(() => {
       if (isPaid) return '';
@@ -123,52 +80,42 @@ const DashboardPaymentItem = ({ payment, onContribute }: DashboardPaymentItemPro
   }, [borderColor, isPaid]);
 
   return (
-    <div className={`bg-white dark:bg-gray-800/50 border rounded-xl p-4 transition-all duration-300 ${borderColor} ${isPaid ? 'opacity-60' : ''}`}>
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h4 className={`font-bold text-gray-900 dark:text-white ${isPaid ? 'line-through' : ''}`}>{name}</h4>
-          <p className={`text-sm font-semibold ${statusColor}`}>{statusText}</p>
-        </div>
-        <div className="text-right">
-            <p className={`font-bold text-lg text-gray-900 dark:text-white ${isPaid ? 'line-through' : ''}`}>
-                {formatCurrency(amount)}
-            </p>
-            {!isPaid && paidAmount > 0 && (
-                <p className="text-xs text-green-600 dark:text-green-400">
-                    Abonado: {formatCurrency(paidAmount)}
-                </p>
-            )}
-        </div>
-      </div>
-      
-      {!isPaid && (
-        <div className="mb-4">
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                <span>Progreso del ciclo</span>
-                <span>{daysRemainingText}</span>
+    <div className={`bg-white dark:bg-gray-800/50 border rounded-lg p-3 transition-all duration-300 ${borderColor} ${isPaid ? 'opacity-70' : ''}`}>
+        <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <div className={`flex-shrink-0 ${iconColor}`}>
+                    {statusIcon}
+                </div>
+                <div className="overflow-hidden">
+                    <h4 title={name} className={`font-bold text-gray-900 dark:text-white truncate ${isPaid ? 'line-through' : ''}`}>{name}</h4>
+                    <p className={`text-sm font-semibold ${statusColor}`}>{statusText}</p>
+                </div>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                className={`${progressColor} h-2 rounded-full transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-                ></div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-right">
+                    <p className={`font-semibold text-base text-gray-900 dark:text-white ${isPaid ? 'line-through' : ''}`}>
+                        {formatCurrency(amount)}
+                    </p>
+                    {!isPaid && paidAmount > 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Restante: {formatCurrency(remainingAmount)}
+                        </p>
+                    )}
+                </div>
+                {isPaid ? (
+                    <div className="hidden sm:flex items-center gap-1.5 text-green-600 dark:text-green-400 font-semibold text-sm px-3 py-1.5 rounded-md bg-green-500/10">
+                        <CheckCircle2Icon className="w-4 h-4" />
+                        <span>Pagado</span>
+                    </div>
+                ) : (
+                    <button
+                        onClick={() => onContribute(payment)}
+                        className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${buttonColor}`}>
+                        Abonar
+                    </button>
+                )}
             </div>
         </div>
-      )}
-      
-      {isPaid ? (
-          <div className="flex items-center justify-center gap-2 text-center py-2 rounded-lg bg-green-500/10 text-green-700 dark:text-green-300 font-bold">
-              <CheckCircle2Icon className="w-5 h-5"/>
-              <span>¡Pago Cubierto!</span>
-          </div>
-      ) : (
-          <button 
-              onClick={() => onContribute(payment)} 
-              className={`w-full text-center font-semibold py-2 px-4 rounded-lg transition-colors ${buttonColor}`}>
-              Abonar
-          </button>
-      )}
-
     </div>
   );
 };

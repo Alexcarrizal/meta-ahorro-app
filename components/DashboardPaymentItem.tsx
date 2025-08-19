@@ -52,9 +52,38 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
   const [isMenuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const { urgencyText, styles } = useMemo(() => {
+  const { timeProgress, timeBarColorClass } = useMemo(() => {
+    if (isCovered) return { timeProgress: 0, timeBarColorClass: 'bg-gray-500' };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const diffTime = due.getTime() - today.getTime();
+    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+    let totalPeriod;
+    switch (frequency) {
+      case Frequency.Weekly: totalPeriod = 7; break;
+      case Frequency.BiWeekly: totalPeriod = 14; break;
+      case Frequency.Monthly: totalPeriod = 30; break;
+      case Frequency.Annual: totalPeriod = 365; break;
+      default: totalPeriod = 30; break;
+    }
+
+    const daysElapsed = Math.max(0, totalPeriod - daysLeft);
+    const progress = totalPeriod > 0 ? (daysElapsed / totalPeriod) * 100 : 100;
+    const finalProgress = Math.min(100, Math.max(0, progress));
+
+    let barColor = 'bg-green-500';
+    if (finalProgress >= 80) barColor = 'bg-red-500';
+    else if (finalProgress >= 50) barColor = 'bg-amber-500';
+    
+    return { timeProgress: finalProgress, timeBarColorClass: barColor };
+  }, [dueDate, isCovered, frequency]);
+
+  const { urgencyText, styles, isUrgent } = useMemo(() => {
     const s = getPaymentColorStyles(color);
-    if (isCovered) return { urgencyText: null, styles: s };
+    if (isCovered) return { urgencyText: null, styles: s, isUrgent: false };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -62,9 +91,16 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return { urgencyText: 'Vencido', styles: s };
-    if (diffDays <= 3) return { urgencyText: 'Vence Pronto', styles: s };
-    return { urgencyText: null, styles: s };
+    let text = null;
+    let urgent = false;
+    if (diffDays < 0) {
+      text = 'Vencido';
+    } else if (diffDays <= 3) {
+      text = 'Vence Pronto';
+      urgent = true; 
+    }
+    
+    return { urgencyText: text, styles: s, isUrgent: urgent };
   }, [dueDate, isCovered, color]);
 
   useEffect(() => {
@@ -74,9 +110,12 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const cardClasses = `bg-[#202331] dark:bg-[#202331] rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 border ${isCovered ? 'border-gray-700 opacity-60' : styles.border} ${isUrgent ? 'animate-soft-glow' : ''}`;
+  const cardStyles = isUrgent ? { '--glow-color': `${styles.shadow}90` } as React.CSSProperties : {};
   
   return (
-    <div className={`bg-[#202331] dark:bg-[#202331] rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 border ${isCovered ? 'border-gray-700 opacity-60' : styles.border}`} style={!isCovered ? { boxShadow: `0 0 15px -7px ${styles.shadow}` } : {}}>
+    <div className={cardClasses} style={cardStyles}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-lg bg-black/20">
@@ -122,9 +161,21 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
         <p className="text-right text-xs text-gray-400 mt-1">
           Restante: {formatCurrency(remainingAmount)}
         </p>
+        
+        {!isCovered && (
+            <div className="mt-2">
+                 <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Inicio del periodo</span>
+                    <span>Vencimiento</span>
+                </div>
+                <div className="w-full bg-black/30 rounded-full h-1.5">
+                    <div className={`${timeBarColorClass} h-1.5 rounded-full`} style={{ width: `${timeProgress}%` }}></div>
+                </div>
+            </div>
+        )}
       </div>
 
-      <div className="flex justify-between items-end mt-2">
+      <div className="flex justify-between items-end mt-3">
         <div className="text-xs text-gray-400 leading-tight">
           <p className="font-semibold text-white text-sm">{getDueDateInfoText(dueDate, isCovered)}</p>
           <p>Fecha Límite: {formatDate(dueDate)}</p>

@@ -28,6 +28,22 @@
       .dark body {
         background-color: #111827; /* bg-gray-900 */
       }
+      /* Agregado para la animación de brillo */
+      @keyframes soft-glow {
+        0% {
+          box-shadow: 0 0 8px var(--glow-color, rgba(255, 255, 255, 0));
+        }
+        50% {
+          box-shadow: 0 0 24px 5px var(--glow-color, rgba(255, 255, 255, 0));
+        }
+        100% {
+          box-shadow: 0 0 8px var(--glow-color, rgba(255, 255, 255, 0));
+        }
+      }
+
+      .animate-soft-glow {
+        animation: soft-glow 3s infinite ease-in-out;
+      }
     </style>
 <script type="importmap">
 {

@@ -240,3 +240,9 @@ export const ListTodoIcon = ({ className }: { className?: string }) => (
         <path d="M21 6H3"/><path d="M21 12H3"/><path d="M21 18H3"/><path d="M7 6V5a1 1 0 0 1 1-1h0a1 1 0 0 1 1 1v1"/><path d="M7 12v-1a1 1 0 0 1 1-1h0a1 1 0 0 1 1 1v1"/><path d="M7 18v-1a1 1 0 0 1 1-1h0a1 1 0 0 1 1 1v1"/>
     </svg>
 );
+
+export const LayoutDashboardIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+    </svg>
+);

@@ -6,7 +6,8 @@ import GoalCard from './components/GoalCard';
 import PaymentCard from './components/PaymentCard';
 import WishlistCard from './components/WishlistCard';
 import CalendarView from './components/CalendarView';
-import { LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons';
+import DashboardPaymentItem from './components/DashboardPaymentItem';
+import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons';
 import { AuthScreen } from './components/Auth';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
@@ -127,7 +128,7 @@ const getInitialPin = (): string | null => {
     return localStorage.getItem('app_pin');
 };
 
-type ActiveTab = 'goals' | 'payments' | 'wishlist' | 'calendar';
+type ActiveTab = 'dashboard' | 'goals' | 'payments' | 'wishlist' | 'calendar';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' | 'wishlist' } | null;
 type PaymentFilter = 'all_unpaid' | 'urgent' | 'overdue' | 'paid';
 
@@ -136,7 +137,7 @@ const App = () => {
   const [pin, setPin] = useState<string | null>(getInitialPin);
   const [isLocked, setLocked] = useState<boolean>(!!getInitialPin());
   
-  const [activeTab, setActiveTab] = useState<ActiveTab>('goals');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [goals, setGoals] = useState<SavingsGoal[]>(() => getInitialData('goals_data', sampleGoals));
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => getInitialData('wishlist_data', sampleWishlist));
   const [payments, setPayments] = useState<Payment[]>(() => {
@@ -255,6 +256,36 @@ const App = () => {
   const sortedGoals = useMemo(() => {
     return [...goals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [goals]);
+
+  const monthlyAndOverduePayments = useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    startOfMonth.setHours(0, 0, 0, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    return payments
+        .filter(p => {
+            const dueDate = new Date(p.dueDate + 'T00:00:00');
+            // Include if it's unpaid and overdue from a previous month
+            const isUnpaidAndOverdue = p.paidAmount < p.amount && dueDate < startOfMonth;
+            // Include if it's due in the current month
+            const isDueThisMonth = dueDate >= startOfMonth && dueDate <= endOfMonth;
+            return isDueThisMonth || isUnpaidAndOverdue;
+        })
+        .sort((a, b) => {
+            const isAPaid = a.paidAmount >= a.amount;
+            const isBPaid = b.paidAmount >= b.amount;
+
+            if (isAPaid && !isBPaid) return 1;
+            if (!isAPaid && isBPaid) return -1;
+
+            const dateA = new Date(a.dueDate + 'T00:00:00');
+            const dateB = new Date(b.dueDate + 'T00:00:00');
+            
+            return dateA.getTime() - dateB.getTime();
+        });
+  }, [payments]);
 
   const filteredPayments = useMemo(() => {
     const sorted = [...payments].sort((a, b) => {
@@ -614,6 +645,7 @@ const App = () => {
             return { title: 'Mis Pagos Programados', buttonText: 'Nuevo Pago', buttonClass: 'bg-sky-500 hover:bg-sky-400', onClick: () => { setPaymentToEdit(null); setPaymentModalOpen(true); } };
         case 'wishlist':
             return { title: 'Mi Lista de Deseos', buttonText: 'Nuevo Deseo', buttonClass: 'bg-indigo-500 hover:bg-indigo-600 text-white', onClick: () => { setWishlistItemToEdit(null); setWishlistModalOpen(true); } };
+        case 'dashboard':
         default:
             return null;
     }
@@ -676,6 +708,7 @@ const App = () => {
 
       <main className="p-4 md:p-6 lg:p-8">
         <div className="flex border-b border-gray-200 dark:border-gray-800">
+          <TabButton id="dashboard" label="Dashboard" icon={<LayoutDashboardIcon className="w-5 h-5"/>} active={activeTab === 'dashboard'} colorClass="border-violet-500" />
           <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} colorClass="border-emerald-500" />
           <TabButton id="payments" label="Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} colorClass="border-sky-500" />
           <TabButton id="wishlist" label="Deseos" icon={<ClipboardListIcon className="w-5 h-5"/>} active={activeTab === 'wishlist'} colorClass="border-indigo-500" />
@@ -695,6 +728,34 @@ const App = () => {
                 {headerInfo.buttonText}
             </button>
           </div>}
+
+          {activeTab === 'dashboard' && (
+             <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Resumen del Mes</h2>
+                    <button
+                        onClick={() => { setPaymentToEdit(null); setPaymentModalOpen(true); }}
+                        className="flex items-center gap-2 px-4 py-2 text-black font-bold rounded-lg transition-colors bg-sky-500 hover:bg-sky-400"
+                    >
+                        <PlusIcon className="w-5 h-5"/>
+                        Nuevo Pago
+                    </button>
+                </div>
+                 {monthlyAndOverduePayments.length > 0 ? (
+                    <div className="space-y-3">
+                        {monthlyAndOverduePayments.map(payment => (
+                            <DashboardPaymentItem key={payment.id} payment={payment} onContribute={handleOpenPaymentContributionModal}/>
+                        ))}
+                    </div>
+                 ) : (
+                    <div className="text-center py-16 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                        <WalletIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">¡Sin pagos este mes!</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">No tienes pagos programados para este mes.</p>
+                    </div>
+                 )}
+             </div>
+          )}
           
           {activeTab === 'payments' && <PaymentFilterControls />}
 

@@ -377,6 +377,9 @@ const App = () => {
                         nextTargetDate.setDate(0);
                     }
                     break;
+                case Frequency.Annual:
+                    nextTargetDate.setFullYear(nextTargetDate.getFullYear() + 1);
+                    break;
             }
 
             const formatDateToInput = (date: Date) => {
@@ -488,6 +491,9 @@ const App = () => {
                     if (nextDueDate.getDate() < currentDueDate.getDate()) {
                         nextDueDate.setDate(0); // Sets to the last day of the previous month
                     }
+                    break;
+                case Frequency.Annual:
+                    nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
                     break;
                 default:
                     newPayments[paymentIndex] = updatedPayment;

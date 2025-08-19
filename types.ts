@@ -9,6 +9,7 @@ export enum Frequency {
   Weekly = 'Semanal',
   BiWeekly = 'Quincenal',
   Monthly = 'Mensual',
+  Annual = 'Anual',
 }
 
 export interface WishlistItem {

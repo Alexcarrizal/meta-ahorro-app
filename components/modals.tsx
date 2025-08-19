@@ -301,6 +301,9 @@ export const ProjectionModal = ({ isOpen, onClose, onSave, goal }: ProjectionMod
         case Frequency.Monthly:
             periods = diffDays / (365.25 / 12);
             break;
+        case Frequency.Annual:
+            periods = diffDays / 365.25;
+            break;
     }
 
     if (periods <= 0) {

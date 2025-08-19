@@ -111,38 +111,38 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const cardClasses = `bg-[#202331] dark:bg-[#202331] rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 border ${isCovered ? 'border-gray-700 opacity-60' : styles.border} ${isUrgent ? 'animate-soft-glow' : ''}`;
+  const cardClasses = `bg-white dark:bg-[#202331] rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 border ${isCovered ? 'border-gray-200 dark:border-gray-700 opacity-70 dark:opacity-60 bg-gray-100' : styles.border} ${isUrgent ? 'animate-soft-glow' : ''}`;
   const cardStyles = isUrgent ? { '--glow-color': `${styles.shadow}90` } as React.CSSProperties : {};
   
   return (
     <div className={cardClasses} style={cardStyles}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-black/20">
+          <div className="p-3 rounded-lg bg-gray-100 dark:bg-black/20">
             <WalletIcon className={`w-6 h-6 ${isCovered ? 'text-gray-500' : styles.icon}`} />
           </div>
           <div>
-            <h3 className={`text-lg font-bold ${isCovered ? 'text-gray-400 line-through' : 'text-white'}`}>{name}</h3>
-            <p className="text-sm text-gray-400 -mt-1">{category}</p>
+            <h3 className={`text-lg font-bold ${isCovered ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{name}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 -mt-1">{category}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {urgencyText && !isCovered && (
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#4A3B2B] text-[#D49D4B]">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 dark:bg-[#4A3B2B] text-amber-800 dark:text-[#D49D4B]">
               {urgencyText}
             </span>
           )}
-          <button onClick={() => onDelete(id)} className="text-gray-400 hover:text-white p-1 rounded-full transition-colors">
+          <button onClick={() => onDelete(id)} className="text-gray-400 hover:text-gray-800 dark:hover:text-white p-1 rounded-full transition-colors">
             <TrashIcon className="w-5 h-5" />
           </button>
           {!isCovered && (
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenuOpen(!isMenuOpen)} className="text-gray-400 hover:text-white p-1 rounded-full transition-colors">
+              <button onClick={() => setMenuOpen(!isMenuOpen)} className="text-gray-400 hover:text-gray-800 dark:hover:text-white p-1 rounded-full transition-colors">
                 <DotsVerticalIcon className="w-5 h-5" />
               </button>
               {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-[#2A2D3A] border border-gray-700 rounded-md shadow-lg z-10">
-                  <button onClick={() => { onEdit(payment); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 cursor-pointer rounded-md">Editar</button>
+                <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#2A2D3A] border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                  <button onClick={() => { onEdit(payment); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer rounded-md">Editar</button>
                 </div>
               )}
             </div>
@@ -151,24 +151,24 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
       </div>
 
       <div>
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
           <span>{formatCurrency(paidAmount)}</span>
           <span>{formatCurrency(amount)}</span>
         </div>
-        <div className="w-full bg-black/30 rounded-full h-1.5">
+        <div className="w-full bg-gray-200 dark:bg-black/30 rounded-full h-1.5">
           <div className={`${isCovered ? 'bg-green-500' : styles.progress} h-1.5 rounded-full`} style={{ width: `${progress}%` }}></div>
         </div>
-        <p className="text-right text-xs text-gray-400 mt-1">
+        <p className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
           Restante: {formatCurrency(remainingAmount)}
         </p>
         
         {!isCovered && (
             <div className="mt-2">
-                 <div className="flex justify-between text-xs text-gray-400 mb-1">
+                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                     <span>Inicio del periodo</span>
                     <span>Vencimiento</span>
                 </div>
-                <div className="w-full bg-black/30 rounded-full h-1.5">
+                <div className="w-full bg-gray-200 dark:bg-black/30 rounded-full h-1.5">
                     <div className={`${timeBarColorClass} h-1.5 rounded-full`} style={{ width: `${timeProgress}%` }}></div>
                 </div>
             </div>
@@ -176,13 +176,13 @@ const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: Dashb
       </div>
 
       <div className="flex justify-between items-end mt-3">
-        <div className="text-xs text-gray-400 leading-tight">
-          <p className="font-semibold text-white text-sm">{getDueDateInfoText(dueDate, isCovered)}</p>
+        <div className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
+          <p className="font-semibold text-gray-900 dark:text-white text-sm">{getDueDateInfoText(dueDate, isCovered)}</p>
           <p>Fecha Límite: {formatDate(dueDate)}</p>
           <p>Frecuencia: {frequency}</p>
         </div>
         {isCovered ? (
-          <div className="text-center font-semibold py-2 px-6 rounded-lg text-sm bg-green-500/10 text-green-400 flex items-center justify-center gap-2">
+          <div className="text-center font-semibold py-2 px-6 rounded-lg text-sm bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 flex items-center justify-center gap-2">
             <CheckCircle2Icon className="w-5 h-5"/> ¡Pagado!
           </div>
         ) : (

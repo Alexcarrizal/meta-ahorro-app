@@ -60,7 +60,7 @@ const samplePayments: Payment[] = [
         dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0], // 5 days from now
         category: 'Finanzas',
         frequency: Frequency.Monthly,
-        color: 'blue',
+        color: 'fuchsia',
     },
     {
         id: 'sample-payment-2',
@@ -81,6 +81,16 @@ const samplePayments: Payment[] = [
         category: 'Servicios',
         frequency: Frequency.OneTime, // Marked as one time because it's paid
         color: 'pink',
+    },
+     {
+        id: 'sample-payment-4',
+        name: 'Didi Card',
+        amount: 698.61,
+        paidAmount: 0,
+        dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        category: 'Transporte',
+        frequency: Frequency.Monthly,
+        color: 'lime',
     },
 ];
 
@@ -271,7 +281,8 @@ const App = () => {
             const isUnpaidAndOverdue = p.paidAmount < p.amount && dueDate < startOfMonth;
             // Include if it's due in the current month
             const isDueThisMonth = dueDate >= startOfMonth && dueDate <= endOfMonth;
-            return isDueThisMonth || isUnpaidAndOverdue;
+            const isPaidThisMonth = p.paidAmount >= p.amount && dueDate >= startOfMonth && dueDate <= endOfMonth;
+            return isDueThisMonth || isUnpaidAndOverdue || isPaidThisMonth;
         })
         .sort((a, b) => {
             const isAPaid = a.paidAmount >= a.amount;
@@ -730,8 +741,8 @@ const App = () => {
           </div>}
 
           {activeTab === 'dashboard' && (
-             <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                <div className="flex justify-between items-center mb-4">
+             <div>
+                <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Resumen del Mes</h2>
                     <button
                         onClick={() => { setPaymentToEdit(null); setPaymentModalOpen(true); }}
@@ -742,13 +753,19 @@ const App = () => {
                     </button>
                 </div>
                  {monthlyAndOverduePayments.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {monthlyAndOverduePayments.map(payment => (
-                            <DashboardPaymentItem key={payment.id} payment={payment} onContribute={handleOpenPaymentContributionModal}/>
+                            <DashboardPaymentItem 
+                                key={payment.id} 
+                                payment={payment} 
+                                onContribute={handleOpenPaymentContributionModal}
+                                onEdit={handleOpenEditPayment}
+                                onDelete={handleDeletePayment}
+                            />
                         ))}
                     </div>
                  ) : (
-                    <div className="text-center py-16 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                    <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
                         <WalletIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
                         <h3 className="text-xl font-semibold text-gray-800 dark:text-white">¡Sin pagos este mes!</h3>
                         <p className="text-gray-500 dark:text-gray-400 mt-1">No tienes pagos programados para este mes.</p>

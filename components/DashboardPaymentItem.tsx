@@ -1,174 +1,145 @@
-
-import React, { useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Payment, Frequency } from '../types.ts';
-import { WalletIcon, CheckCircle2Icon, AlertTriangleIcon } from './icons.tsx';
+import { WalletIcon, DotsVerticalIcon, TrashIcon, CheckCircle2Icon } from './icons.tsx';
 
 interface DashboardPaymentItemProps {
   payment: Payment;
+  onEdit: (payment: Payment) => void;
+  onDelete: (id: string) => void;
   onContribute: (payment: Payment) => void;
 }
 
 const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    }).format(amount);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
 };
 
-const DashboardPaymentItem = ({ payment, onContribute }: DashboardPaymentItemProps) => {
-  const { name, amount, paidAmount, dueDate, frequency } = payment;
-  const isPaid = paidAmount >= amount;
+const formatDate = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+};
 
-  const {
-    progress,
-    daysRemainingText,
-    statusText,
-    statusColor,
-    progressColor,
-    borderColor
-  } = useMemo(() => {
-    if (isPaid) {
-      return {
-        progress: 100,
-        daysRemainingText: 'Completado',
-        statusText: 'Pagado',
-        statusColor: 'text-green-600 dark:text-green-400',
-        progressColor: 'bg-green-500',
-        borderColor: 'border-gray-200 dark:border-gray-700'
-      };
-    }
+const getDueDateInfoText = (dueDate: string, isCovered: boolean): string => {
+    if (isCovered) return 'Pago Cubierto';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return `Vencido hace ${Math.abs(diffDays)} día(s)`;
+    if (diffDays === 0) return 'Vence hoy';
+    return `Vence en ${diffDays} días`;
+};
+
+const getPaymentColorStyles = (color: string) => {
+    const colorMap: { [key: string]: { [key: string]: string } } = {
+        lime: { border: 'border-[#96C82B]', shadow: '#96C82B', icon: 'text-[#96C82B]', progress: 'bg-[#96C82B]', button: 'bg-[#96C82B] text-black hover:bg-lime-300' },
+        fuchsia: { border: 'border-[#B434A4]', shadow: '#B434A4', icon: 'text-[#B434A4]', progress: 'bg-[#B434A4]', button: 'bg-[#B434A4] text-white hover:bg-fuchsia-400' },
+        teal: { border: 'border-teal-400', shadow: '#2dd4bf', icon: 'text-teal-400', progress: 'bg-teal-500', button: 'bg-teal-500 text-white hover:bg-teal-400' },
+        cyan: { border: 'border-cyan-400', shadow: '#22d3ee', icon: 'text-cyan-400', progress: 'bg-cyan-500', button: 'bg-cyan-500 text-black hover:bg-cyan-400' },
+        blue: { border: 'border-blue-400', shadow: '#60a5fa', icon: 'text-blue-400', progress: 'bg-blue-500', button: 'bg-blue-500 text-white hover:bg-blue-400' },
+        pink: { border: 'border-pink-400', shadow: '#f472b6', icon: 'text-pink-400', progress: 'bg-pink-500', button: 'bg-pink-500 text-white hover:bg-pink-400' },
+    };
+    return colorMap[color] || colorMap.blue;
+};
+
+
+const DashboardPaymentItem = ({ payment, onEdit, onDelete, onContribute }: DashboardPaymentItemProps) => {
+  const { id, name, amount, paidAmount, dueDate, category, frequency, color } = payment;
+  const isCovered = paidAmount >= amount;
+  const progress = amount > 0 ? Math.min((paidAmount / amount) * 100, 100) : 0;
+  const remainingAmount = Math.max(0, amount - paidAmount);
+  
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const { urgencyText, styles } = useMemo(() => {
+    const s = getPaymentColorStyles(color);
+    if (isCovered) return { urgencyText: null, styles: s };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const due = new Date(dueDate + 'T00:00:00');
-    
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    let cycleStartDate = new Date(due);
-    let cycleLengthDays = 30;
+    if (diffDays < 0) return { urgencyText: 'Vencido', styles: s };
+    if (diffDays <= 3) return { urgencyText: 'Vence Pronto', styles: s };
+    return { urgencyText: null, styles: s };
+  }, [dueDate, isCovered, color]);
 
-    switch (frequency) {
-        case Frequency.Weekly:
-            cycleStartDate.setDate(due.getDate() - 7);
-            cycleLengthDays = 7;
-            break;
-        case Frequency.BiWeekly:
-            cycleStartDate.setDate(due.getDate() - 14);
-            cycleLengthDays = 14;
-            break;
-        case Frequency.Monthly:
-            cycleStartDate.setMonth(due.getMonth() - 1);
-            const tempDate = new Date(due);
-            tempDate.setDate(0);
-            cycleLengthDays = tempDate.getDate();
-            break;
-        case Frequency.Annual:
-            cycleStartDate.setFullYear(due.getFullYear() - 1);
-            cycleLengthDays = (new Date(due.getFullYear(), 1, 29).getDate() === 29 || new Date(cycleStartDate.getFullYear(), 1, 29).getDate() === 29) ? 366 : 365;
-            break;
-        case Frequency.OneTime:
-        default:
-            cycleStartDate = new Date();
-            cycleStartDate.setDate(due.getDate() - 30);
-            cycleLengthDays = 30;
-            break;
-    }
-
-    const elapsed = today.getTime() - cycleStartDate.getTime();
-    const elapsedDays = Math.max(0, Math.floor(elapsed / (1000 * 60 * 60 * 24)));
-    const currentProgress = Math.min(100, (elapsedDays / cycleLengthDays) * 100);
-
-    let currentStatusText = `Vence en ${diffDays} días`;
-    let currentDaysRemainingText = `${diffDays} días restantes`;
-    let currentStatusColor = 'text-gray-500 dark:text-gray-400';
-    let currentProgressColor = 'bg-sky-500';
-    let currentBorderColor = 'border-gray-200 dark:border-gray-700/80 hover:border-sky-400 dark:hover:border-sky-500/50';
-
-    if (diffDays < 0) {
-      currentStatusText = `Vencido hace ${Math.abs(diffDays)} día(s)`;
-      currentDaysRemainingText = `Vencido`;
-      currentStatusColor = 'text-red-500 dark:text-red-400';
-      currentProgressColor = 'bg-red-500';
-      currentBorderColor = 'border-red-500/50';
-    } else if (diffDays <= 3) {
-        currentStatusText = diffDays === 0 ? 'Vence hoy' : `Vence en ${diffDays} día(s)`;
-        currentDaysRemainingText = diffDays === 0 ? 'Vence hoy' : `${diffDays} días restantes`;
-        currentStatusColor = 'text-red-500 dark:text-red-400';
-        currentProgressColor = 'bg-red-500';
-        currentBorderColor = 'border-red-500/50';
-    } else if (diffDays <= 7) {
-      currentStatusText = `Vence en ${diffDays} día(s)`;
-      currentDaysRemainingText = `${diffDays} días restantes`;
-      currentStatusColor = 'text-amber-500 dark:text-amber-400';
-      currentProgressColor = 'bg-amber-500';
-      currentBorderColor = 'border-amber-500/50';
-    }
-    
-    return {
-      progress: currentProgress,
-      daysRemainingText: currentDaysRemainingText,
-      statusText: currentStatusText,
-      statusColor: currentStatusColor,
-      progressColor: currentProgressColor,
-      borderColor: currentBorderColor
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
     };
-  }, [payment]);
-
-  const buttonColor = useMemo(() => {
-      if (isPaid) return '';
-      if (borderColor.includes('red')) return 'bg-red-500 hover:bg-red-600 text-white';
-      if (borderColor.includes('amber')) return 'bg-amber-500 hover:bg-amber-600 text-black';
-      return 'bg-sky-500 hover:bg-sky-600 text-black';
-  }, [borderColor, isPaid]);
-
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  
   return (
-    <div className={`bg-white dark:bg-gray-800/50 border rounded-xl p-4 transition-all duration-300 ${borderColor} ${isPaid ? 'opacity-60' : ''}`}>
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h4 className={`font-bold text-gray-900 dark:text-white ${isPaid ? 'line-through' : ''}`}>{name}</h4>
-          <p className={`text-sm font-semibold ${statusColor}`}>{statusText}</p>
+    <div className={`bg-[#202331] dark:bg-[#202331] rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 border ${isCovered ? 'border-gray-700 opacity-60' : styles.border}`} style={!isCovered ? { boxShadow: `0 0 15px -7px ${styles.shadow}` } : {}}>
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-lg bg-black/20">
+            <WalletIcon className={`w-6 h-6 ${isCovered ? 'text-gray-500' : styles.icon}`} />
+          </div>
+          <div>
+            <h3 className={`text-lg font-bold ${isCovered ? 'text-gray-400 line-through' : 'text-white'}`}>{name}</h3>
+            <p className="text-sm text-gray-400 -mt-1">{category}</p>
+          </div>
         </div>
-        <div className="text-right">
-            <p className={`font-bold text-lg text-gray-900 dark:text-white ${isPaid ? 'line-through' : ''}`}>
-                {formatCurrency(amount)}
-            </p>
-            {!isPaid && paidAmount > 0 && (
-                <p className="text-xs text-green-600 dark:text-green-400">
-                    Abonado: {formatCurrency(paidAmount)}
-                </p>
-            )}
+        <div className="flex items-center gap-1">
+          {urgencyText && !isCovered && (
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#4A3B2B] text-[#D49D4B]">
+              {urgencyText}
+            </span>
+          )}
+          <button onClick={() => onDelete(id)} className="text-gray-400 hover:text-white p-1 rounded-full transition-colors">
+            <TrashIcon className="w-5 h-5" />
+          </button>
+          {!isCovered && (
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setMenuOpen(!isMenuOpen)} className="text-gray-400 hover:text-white p-1 rounded-full transition-colors">
+                <DotsVerticalIcon className="w-5 h-5" />
+              </button>
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-[#2A2D3A] border border-gray-700 rounded-md shadow-lg z-10">
+                  <button onClick={() => { onEdit(payment); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700/50 cursor-pointer rounded-md">Editar</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-      
-      {!isPaid && (
-        <div className="mb-4">
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                <span>Progreso del ciclo</span>
-                <span>{daysRemainingText}</span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                className={`${progressColor} h-2 rounded-full transition-all duration-500`}
-                style={{ width: `${progress}%` }}
-                ></div>
-            </div>
-        </div>
-      )}
-      
-      {isPaid ? (
-          <div className="flex items-center justify-center gap-2 text-center py-2 rounded-lg bg-green-500/10 text-green-700 dark:text-green-300 font-bold">
-              <CheckCircle2Icon className="w-5 h-5"/>
-              <span>¡Pago Cubierto!</span>
-          </div>
-      ) : (
-          <button 
-              onClick={() => onContribute(payment)} 
-              className={`w-full text-center font-semibold py-2 px-4 rounded-lg transition-colors ${buttonColor}`}>
-              Abonar
-          </button>
-      )}
 
+      <div>
+        <div className="flex justify-between text-xs text-gray-400 mb-1">
+          <span>{formatCurrency(paidAmount)}</span>
+          <span>{formatCurrency(amount)}</span>
+        </div>
+        <div className="w-full bg-black/30 rounded-full h-1.5">
+          <div className={`${isCovered ? 'bg-green-500' : styles.progress} h-1.5 rounded-full`} style={{ width: `${progress}%` }}></div>
+        </div>
+        <p className="text-right text-xs text-gray-400 mt-1">
+          Restante: {formatCurrency(remainingAmount)}
+        </p>
+      </div>
+
+      <div className="flex justify-between items-end mt-2">
+        <div className="text-xs text-gray-400 leading-tight">
+          <p className="font-semibold text-white text-sm">{getDueDateInfoText(dueDate, isCovered)}</p>
+          <p>Fecha Límite: {formatDate(dueDate)}</p>
+          <p>Frecuencia: {frequency}</p>
+        </div>
+        {isCovered ? (
+          <div className="text-center font-semibold py-2 px-6 rounded-lg text-sm bg-green-500/10 text-green-400 flex items-center justify-center gap-2">
+            <CheckCircle2Icon className="w-5 h-5"/> ¡Pagado!
+          </div>
+        ) : (
+          <button onClick={() => onContribute(payment)} className={`text-center font-semibold py-2 px-6 rounded-lg transition-colors text-sm ${styles.button}`}>
+            Abonar
+          </button>
+        )}
+      </div>
     </div>
   );
 };

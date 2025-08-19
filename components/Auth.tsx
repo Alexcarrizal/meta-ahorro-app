@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { DeleteIcon, LockIcon } from './icons';
+import { DeleteIcon, LockIcon } from './icons.tsx';
 
 interface AuthScreenProps {
     hasPin: boolean;

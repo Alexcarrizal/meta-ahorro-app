@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { WishlistItem, Priority } from '../types';
-import { ClipboardListIcon, DotsVerticalIcon, TrashIcon, ArrowUpCircleIcon } from './icons';
+import { WishlistItem, Priority } from '../types.ts';
+import { ClipboardListIcon, DotsVerticalIcon, TrashIcon, ArrowUpCircleIcon } from './icons.tsx';
 
 interface WishlistCardProps {
     item: WishlistItem;

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Payment, Frequency } from '../types';
-import { WalletIcon, DotsVerticalIcon, TrashIcon } from './icons';
+import { Payment, Frequency } from '../types.ts';
+import { WalletIcon, DotsVerticalIcon, TrashIcon } from './icons.tsx';
 
 interface PaymentCardProps {
   payment: Payment;

@@ -1,14 +1,14 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types';
-import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals';
-import GoalCard from './components/GoalCard';
-import PaymentCard from './components/PaymentCard';
-import WishlistCard from './components/WishlistCard';
-import CalendarView from './components/CalendarView';
-import DashboardPaymentItem from './components/DashboardPaymentItem';
-import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons';
-import { AuthScreen } from './components/Auth';
+import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types.ts';
+import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals.tsx';
+import GoalCard from './components/GoalCard.tsx';
+import PaymentCard from './components/PaymentCard.tsx';
+import WishlistCard from './components/WishlistCard.tsx';
+import CalendarView from './components/CalendarView.tsx';
+import DashboardPaymentItem from './components/DashboardPaymentItem.tsx';
+import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons.tsx';
+import { AuthScreen } from './components/Auth.tsx';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
 const PAYMENT_COLORS = ['teal', 'cyan', 'blue', 'lime', 'fuchsia', 'pink'];

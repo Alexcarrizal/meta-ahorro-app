@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { SavingsGoal, Frequency, Priority } from '../types';
-import { LaptopIcon, DotsVerticalIcon, TrashIcon } from './icons';
+import { SavingsGoal, Frequency, Priority } from '../types.ts';
+import { LaptopIcon, DotsVerticalIcon, TrashIcon } from './icons.tsx';
 
 interface GoalCardProps {
   goal: SavingsGoal;

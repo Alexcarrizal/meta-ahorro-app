@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
-import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from '../types';
-import { CloseIcon, SunIcon, MoonIcon, LockIcon, PlusIcon, WalletIcon, LaptopIcon } from './icons';
-import { AuthScreen } from './Auth';
+import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from '../types.ts';
+import { CloseIcon, SunIcon, MoonIcon, LockIcon, PlusIcon, WalletIcon, LaptopIcon } from './icons.tsx';
+import { AuthScreen } from './Auth.tsx';
 
 
 interface ModalProps {

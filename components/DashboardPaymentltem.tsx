@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import { Payment } from '../types';
-import { WalletIcon, CheckCircle2Icon, AlertTriangleIcon } from './icons';
+import { Payment } from '../types.ts';
+import { WalletIcon, CheckCircle2Icon, AlertTriangleIcon } from './icons.tsx';
 
 interface DashboardPaymentItemProps {
   payment: Payment;

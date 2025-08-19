@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
-import { Payment, SavingsGoal } from '../types';
-import { ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { Payment, SavingsGoal } from '../types.ts';
+import { ChevronLeftIcon, ChevronRightIcon } from './icons.tsx';
 
 interface CalendarViewProps {
     payments: Payment[];

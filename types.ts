@@ -18,6 +18,7 @@ export interface WishlistItem {
   category: string;
   priority: Priority;
   estimatedAmount?: number;
+  url?: string;
 }
 
 export interface SavingsGoal {

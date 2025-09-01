@@ -112,6 +112,7 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
   const [estimatedAmount, setEstimatedAmount] = useState<number | string>('');
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<Priority>(Priority.Medium);
+  const [url, setUrl] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -120,11 +121,13 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
         setEstimatedAmount(itemToEdit.estimatedAmount || '');
         setCategory(itemToEdit.category);
         setPriority(itemToEdit.priority);
+        setUrl(itemToEdit.url || '');
       } else {
         setName('');
         setEstimatedAmount('');
         setCategory('');
         setPriority(Priority.Medium);
+        setUrl('');
       }
     }
   }, [itemToEdit, isOpen]);
@@ -137,6 +140,7 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
       estimatedAmount: Number(estimatedAmount) || undefined,
       category,
       priority,
+      url: url || undefined,
     });
     onClose();
   };
@@ -150,12 +154,16 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
           <input type="text" id="wish-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Silla de Oficina Ergonómica" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
         </div>
         <div>
+          <label htmlFor="wish-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+          <input type="text" id="wish-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ej. Hogar y Oficina" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+        </div>
+        <div>
           <label htmlFor="wish-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Costo Estimado (MXN) <span className="text-gray-400">(Opcional)</span></label>
           <input type="number" id="wish-amount" value={estimatedAmount} onChange={(e) => setEstimatedAmount(e.target.value)} placeholder="5000" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
         </div>
         <div>
-          <label htmlFor="wish-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
-          <input type="text" id="wish-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ej. Hogar y Oficina" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+          <label htmlFor="wish-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Página Web <span className="text-gray-400">(Opcional)</span></label>
+          <input type="url" id="wish-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://ejemplo.com/producto" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
         </div>
         <div>
           <label htmlFor="wish-priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioridad</label>

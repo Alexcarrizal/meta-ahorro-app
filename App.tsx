@@ -100,6 +100,7 @@ const sampleWishlist: WishlistItem[] = [
         category: 'Hogar',
         priority: Priority.Medium,
         estimatedAmount: 6000,
+        url: 'https://www.hermanmiller.com/products/seating/office-chairs/aeron-chairs/',
     },
     {
         id: 'sample-wish-2',

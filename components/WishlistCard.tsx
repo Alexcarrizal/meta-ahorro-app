@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { WishlistItem, Priority } from '../types.ts';
-import { ClipboardListIcon, DotsVerticalIcon, TrashIcon, ArrowUpCircleIcon } from './icons.tsx';
+import { ClipboardListIcon, DotsVerticalIcon, TrashIcon, ArrowUpCircleIcon, LinkIcon } from './icons.tsx';
 
 interface WishlistCardProps {
     item: WishlistItem;
@@ -31,7 +31,7 @@ const getPriorityClass = (priority: Priority) => {
 };
 
 const WishlistCard = ({ item, onEdit, onDelete, onMoveToGoal }: WishlistCardProps) => {
-    const { id, name, category, priority, estimatedAmount } = item;
+    const { id, name, category, priority, estimatedAmount, url } = item;
     const [isMenuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +87,19 @@ const WishlistCard = ({ item, onEdit, onDelete, onMoveToGoal }: WishlistCardProp
                 </div>
             </div>
 
-            <div className="mt-auto">
+            <div className="mt-auto space-y-2">
+                 {url && (
+                    <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 text-center font-semibold py-2 px-4 rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <LinkIcon className="w-5 h-5" />
+                        Ver Producto
+                    </a>
+                )}
                 <button
                     onClick={() => onMoveToGoal(item)}
                     className="w-full flex items-center justify-center gap-2 text-center font-semibold py-2 px-4 rounded-lg transition-colors bg-indigo-500 hover:bg-indigo-600 text-white">

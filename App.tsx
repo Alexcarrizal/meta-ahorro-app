@@ -743,7 +743,7 @@ const App = () => {
           {activeTab === 'dashboard' && (
              <div>
                 <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Resumen del Mes</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pagos del Mes</h2>
                     <button
                         onClick={() => { setPaymentToEdit(null); setPaymentModalOpen(true); }}
                         className="flex items-center gap-2 px-4 py-2 text-black font-bold rounded-lg transition-colors bg-sky-500 hover:bg-sky-400"

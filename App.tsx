@@ -239,6 +239,55 @@ const App = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Payment Reminder Notifications
+  useEffect(() => {
+    if (isLocked) {
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcomingPayments = payments.filter(p => {
+        if (p.paidAmount >= p.amount) {
+            return false; // Already paid
+        }
+
+        const dueDate = new Date(p.dueDate + 'T00:00:00');
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays >= 0 && diffDays <= 3;
+    });
+
+    upcomingPayments.forEach(p => {
+        const notificationKey = `notified_${p.id}`;
+        if (!sessionStorage.getItem(notificationKey)) {
+            const dueDate = new Date(p.dueDate + 'T00:00:00');
+            const diffTime = dueDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const remainingAmount = p.amount - p.paidAmount;
+
+            let dueDateText = '';
+            if (diffDays === 0) {
+                dueDateText = 'hoy';
+            } else if (diffDays === 1) {
+                dueDateText = 'mañana';
+            } else {
+                dueDateText = `en ${diffDays} días`;
+            }
+            
+            window.alert(
+                `¡Recordatorio de Pago Urgente!\n\n` +
+                `Tu pago para "${p.name}" vence ${dueDateText}.\n` +
+                `Monto restante: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remainingAmount)}`
+            );
+            
+            sessionStorage.setItem(notificationKey, 'true');
+        }
+    });
+  }, [payments, isLocked]);
+
   const handleToggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   };

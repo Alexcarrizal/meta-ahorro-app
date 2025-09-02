@@ -264,3 +264,19 @@ export const LinkIcon = ({ className }: { className?: string }) => (
     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" />
   </svg>
 );
+
+export const PiggyBankIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M10 21h4a2 2 0 0 0 2-2v-2H8v2c0 1.1.9 2 2 2Z"/>
+        <path d="M19.34 7.66A8.02 8.02 0 0 0 12 4a8 8 0 0 0-8 8c0 2.22.9 4.22 2.34 5.66"/>
+        <path d="M12 4v2"/>
+        <path d="M15 9.5a.5.5 0 0 1 .5-.5h0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h0a.5.5 0 0 1-.5-.5Z"/>
+    </svg>
+);
+
+export const TrendingUpIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        <polyline points="16 7 22 7 22 13"/>
+    </svg>
+);

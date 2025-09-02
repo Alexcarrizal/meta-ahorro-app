@@ -5,8 +5,7 @@ import GoalCard from './components/GoalCard.tsx';
 import PaymentCard from './components/PaymentCard.tsx';
 import WishlistCard from './components/WishlistCard.tsx';
 import CalendarView from './components/CalendarView.tsx';
-import DashboardPaymentItem from './components/DashboardPaymentItem.tsx';
-import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon } from './components/icons.tsx';
+import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon, PiggyBankIcon, TrendingUpIcon } from './components/icons.tsx';
 import { AuthScreen } from './components/Auth.tsx';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
@@ -141,6 +140,10 @@ const getInitialPin = (): string | null => {
 type ActiveTab = 'dashboard' | 'goals' | 'payments' | 'wishlist' | 'calendar';
 type ItemToDelete = { id: string; type: 'goal' | 'payment' | 'wishlist' } | null;
 type PaymentFilter = 'all_unpaid' | 'urgent' | 'overdue' | 'paid';
+
+const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+};
 
 const App = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
@@ -316,36 +319,58 @@ const App = () => {
     return [...goals].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [goals]);
 
-  const monthlyAndOverduePayments = useMemo(() => {
+  const dashboardData = useMemo(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     startOfMonth.setHours(0, 0, 0, 0);
     endOfMonth.setHours(23, 59, 59, 999);
 
-    return payments
-        .filter(p => {
-            const dueDate = new Date(p.dueDate + 'T00:00:00');
-            // Include if it's unpaid and overdue from a previous month
-            const isUnpaidAndOverdue = p.paidAmount < p.amount && dueDate < startOfMonth;
-            // Include if it's due in the current month
-            const isDueThisMonth = dueDate >= startOfMonth && dueDate <= endOfMonth;
-            const isPaidThisMonth = p.paidAmount >= p.amount && dueDate >= startOfMonth && dueDate <= endOfMonth;
-            return isDueThisMonth || isUnpaidAndOverdue || isPaidThisMonth;
-        })
-        .sort((a, b) => {
-            const isAPaid = a.paidAmount >= a.amount;
-            const isBPaid = b.paidAmount >= b.amount;
+    const paymentsThisMonth = payments.filter(p => {
+        const dueDate = new Date(p.dueDate + 'T00:00:00');
+        return dueDate >= startOfMonth && dueDate <= endOfMonth;
+    });
 
-            if (isAPaid && !isBPaid) return 1;
-            if (!isAPaid && isBPaid) return -1;
+    const unpaidPayments = payments
+        .filter(p => p.paidAmount < p.amount)
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-            const dateA = new Date(a.dueDate + 'T00:00:00');
-            const dateB = new Date(b.dueDate + 'T00:00:00');
-            
-            return dateA.getTime() - dateB.getTime();
-        });
-  }, [payments]);
+    const totalPendingInMonth = paymentsThisMonth.reduce((sum, p) => sum + Math.max(0, p.amount - p.paidAmount), 0);
+    const totalPaidInMonth = paymentsThisMonth.reduce((sum, p) => sum + p.paidAmount, 0);
+    const totalSavings = goals.reduce((sum, g) => sum + g.savedAmount, 0);
+
+    const sortedGoalsByProgress = [...goals]
+        .filter(g => g.targetAmount > 0 && g.savedAmount < g.targetAmount)
+        .map(g => ({ ...g, progress: (g.savedAmount / g.targetAmount) * 100 }))
+        .sort((a, b) => b.progress - a.progress);
+    
+    const topGoals = sortedGoalsByProgress.slice(0, 3);
+    const upcomingPayments = unpaidPayments.slice(0, 5);
+    
+    const categorySpending = paymentsThisMonth.reduce((acc, p) => {
+        acc[p.category] = (acc[p.category] || 0) + p.amount;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const totalMonthSpending = Object.values(categorySpending).reduce((sum, amount) => sum + amount, 0);
+    
+    const categorySpendingWithPercentage = Object.entries(categorySpending)
+        .map(([category, amount]) => ({
+            category,
+            amount,
+            percentage: totalMonthSpending > 0 ? (amount / totalMonthSpending) * 100 : 0
+        }))
+        .sort((a, b) => b.amount - a.amount);
+
+    return {
+        totalPendingInMonth,
+        totalPaidInMonth,
+        totalSavings,
+        topGoals,
+        upcomingPayments,
+        categorySpending: categorySpendingWithPercentage
+    };
+  }, [payments, goals]);
 
   const filteredPayments = useMemo(() => {
     const sorted = [...payments].sort((a, b) => {
@@ -756,6 +781,40 @@ const App = () => {
     }
     return null;
   }
+  
+  const StatCard = ({ icon, title, value, color }: { icon: React.ReactElement<{ className?: string }>, title: string, value: string, color: string }) => {
+    const colorClasses: Record<string, { border: string, text: string }> = {
+        red: { border: 'border-red-500', text: 'text-red-500 dark:text-red-400' },
+        green: { border: 'border-green-500', text: 'text-green-500 dark:text-green-400' },
+        blue: { border: 'border-sky-500', text: 'text-sky-500 dark:text-sky-400' },
+    };
+    const classes = colorClasses[color] || colorClasses.blue;
+    return (
+        <div className={`bg-white dark:bg-gray-800 p-5 rounded-2xl flex items-center gap-4 border-l-4 ${classes.border}`}>
+            <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700">
+                {React.cloneElement(icon, { className: `w-7 h-7 ${classes.text}` })}
+            </div>
+            <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+            </div>
+        </div>
+    );
+  };
+
+  const getDueDateStatus = (dueDate: string): { text: string, color: string } => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + 'T00:00:00');
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { text: `Vencido hace ${Math.abs(diffDays)}d`, color: 'bg-red-500' };
+    if (diffDays === 0) return { text: 'Vence Hoy', color: 'bg-amber-500' };
+    if (diffDays <= 7) return { text: `Vence en ${diffDays}d`, color: 'bg-amber-500' };
+    return { text: `Vence en ${diffDays}d`, color: 'bg-gray-500' };
+  };
+
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen font-sans">
@@ -769,8 +828,8 @@ const App = () => {
       <main className="p-4 md:p-6 lg:p-8">
         <div className="flex border-b border-gray-200 dark:border-gray-800">
           <TabButton id="dashboard" label="Dashboard" icon={<LayoutDashboardIcon className="w-5 h-5"/>} active={activeTab === 'dashboard'} colorClass="border-violet-500" />
-          <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} colorClass="border-emerald-500" />
           <TabButton id="payments" label="Pagos" icon={<WalletIcon className="w-5 h-5"/>} active={activeTab === 'payments'} colorClass="border-sky-500" />
+          <TabButton id="goals" label="Metas" icon={<LaptopIcon className="w-5 h-5"/>} active={activeTab === 'goals'} colorClass="border-emerald-500" />
           <TabButton id="wishlist" label="Deseos" icon={<ClipboardListIcon className="w-5 h-5"/>} active={activeTab === 'wishlist'} colorClass="border-indigo-500" />
           <TabButton id="calendar" label="Calendario" icon={<CalendarIcon className="w-5 h-5"/>} active={activeTab === 'calendar'} colorClass="border-rose-500" />
         </div>
@@ -790,36 +849,94 @@ const App = () => {
           </div>}
 
           {activeTab === 'dashboard' && (
-             <div>
-                <div className="flex justify-between items-center mb-6 px-6 py-4 bg-white dark:bg-gray-800 rounded-lg">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pagos del Mes</h2>
-                    <button
-                        onClick={() => { setPaymentToEdit(null); setPaymentModalOpen(true); }}
-                        className="flex items-center gap-2 px-4 py-2 text-black font-bold rounded-lg transition-colors bg-sky-500 hover:bg-sky-400"
-                    >
-                        <PlusIcon className="w-5 h-5"/>
-                        Nuevo Pago
-                    </button>
+             <div className="space-y-8">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Resumen del Mes</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <StatCard icon={<WalletIcon />} title="Pendiente en Pagos" value={formatCurrency(dashboardData.totalPendingInMonth)} color="red" />
+                        <StatCard icon={<CheckCircle2Icon />} title="Pagado este Mes" value={formatCurrency(dashboardData.totalPaidInMonth)} color="green" />
+                        <StatCard icon={<PiggyBankIcon />} title="Ahorro Total en Metas" value={formatCurrency(dashboardData.totalSavings)} color="blue" />
+                    </div>
                 </div>
-                 {monthlyAndOverduePayments.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {monthlyAndOverduePayments.map(payment => (
-                            <DashboardPaymentItem 
-                                key={payment.id} 
-                                payment={payment} 
-                                onContribute={handleOpenPaymentContributionModal}
-                                onEdit={handleOpenEditPayment}
-                                onDelete={handleDeletePayment}
-                            />
-                        ))}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl">
+                            <h3 className="font-bold text-xl mb-4">Próximos Pagos</h3>
+                            {dashboardData.upcomingPayments.length > 0 ? (
+                                <ul className="space-y-4">
+                                {dashboardData.upcomingPayments.map(p => {
+                                    const status = getDueDateStatus(p.dueDate);
+                                    return (
+                                    <li key={p.id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`w-3 h-3 rounded-full ${status.color}`}></span>
+                                            <div>
+                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{p.name}</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(p.amount - p.paidAmount)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-semibold text-sm ${status.color === 'bg-red-500' ? 'text-red-500' : (status.color === 'bg-amber-500' ? 'text-amber-500' : 'text-gray-600 dark:text-gray-300')}`}>{status.text}</p>
+                                        </div>
+                                    </li>
+                                    );
+                                })}
+                                </ul>
+                            ) : (
+                                <p className="text-center py-8 text-gray-500 dark:text-gray-400">¡No hay pagos pendientes!</p>
+                            )}
+                             <button onClick={() => setActiveTab('payments')} className="w-full mt-4 text-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                                Ver todos los pagos
+                            </button>
+                        </div>
+
+                         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl">
+                            <h3 className="font-bold text-xl mb-4">Gastos por Categoría (Este Mes)</h3>
+                            {dashboardData.categorySpending.length > 0 ? (
+                                <ul className="space-y-4">
+                                    {dashboardData.categorySpending.map(({ category, amount, percentage }) => (
+                                        <li key={category}>
+                                            <div className="flex justify-between text-sm mb-1 font-medium text-gray-600 dark:text-gray-300">
+                                                <span>{category}</span>
+                                                <span>{formatCurrency(amount)}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                                <div className="bg-sky-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-center py-8 text-gray-500 dark:text-gray-400">Sin gastos registrados este mes.</p>
+                            )}
+                        </div>
+
                     </div>
-                 ) : (
-                    <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
-                        <WalletIcon className="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"/>
-                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">¡Sin pagos este mes!</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1">No tienes pagos programados para este mes.</p>
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl">
+                        <h3 className="font-bold text-xl mb-4">Progreso de Metas</h3>
+                        {dashboardData.topGoals.length > 0 ? (
+                            <ul className="space-y-5">
+                            {dashboardData.topGoals.map(g => (
+                                <li key={g.id}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{g.name}</p>
+                                        <span className="text-sm font-bold text-emerald-500">{Math.floor(g.progress)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${g.progress}%` }}></div>
+                                    </div>
+                                </li>
+                            ))}
+                            </ul>
+                        ) : (
+                             <p className="text-center py-8 text-gray-500 dark:text-gray-400">No hay metas activas.</p>
+                        )}
+                        <button onClick={() => setActiveTab('goals')} className="w-full mt-6 text-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                            Ver todas las metas
+                        </button>
                     </div>
-                 )}
+                </div>
              </div>
           )}
           

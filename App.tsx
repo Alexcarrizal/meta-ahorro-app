@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types.ts';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals.tsx';
@@ -425,6 +426,20 @@ const App = () => {
       .sort(([catA], [catB]) => catA.localeCompare(catB))
       .map(([category, items]) => ({ category, items }));
   }, [wishlist]);
+
+  const groupedAndSortedPayments = useMemo(() => {
+    if (filteredPayments.length === 0) return [];
+
+    const grouped: Record<string, Payment[]> = filteredPayments.reduce((acc, item) => {
+      acc[item.category] = acc[item.category] || [];
+      acc[item.category].push(item);
+      return acc;
+    }, {} as Record<string, Payment[]>);
+
+    return Object.entries(grouped)
+      .sort(([catA], [catB]) => catA.localeCompare(catB))
+      .map(([category, items]) => ({ category, items }));
+  }, [filteredPayments]);
 
   const handleSaveGoal = useCallback((goalData: Omit<SavingsGoal, 'savedAmount' | 'createdAt' | 'projection' | 'color'> & { id?: string }) => {
     if (goalData.id) { // Editing
@@ -979,10 +994,20 @@ const App = () => {
           )}
 
           {activeTab === 'payments' && (
-             filteredPayments.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {filteredPayments.map(payment => (
-                        <PaymentCard key={payment.id} payment={payment} onEdit={handleOpenEditPayment} onDelete={handleDeletePayment} onContribute={handleOpenPaymentContributionModal}/>
+             groupedAndSortedPayments.length > 0 ? (
+                <div className="space-y-8">
+                    {groupedAndSortedPayments.map(({ category, items }) => (
+                        <div key={category}>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="w-2 h-8 bg-sky-500 rounded-full"></span>
+                                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{category}</h3>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {items.map(payment => (
+                                    <PaymentCard key={payment.id} payment={payment} onEdit={handleOpenEditPayment} onDelete={handleDeletePayment} onContribute={handleOpenPaymentContributionModal}/>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : (

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { WishlistItem, Priority } from '../types.ts';
 import { ClipboardListIcon, DotsVerticalIcon, TrashIcon, ArrowUpCircleIcon, LinkIcon } from './icons.tsx';
@@ -31,7 +32,7 @@ const getPriorityClass = (priority: Priority) => {
 };
 
 const WishlistCard = ({ item, onEdit, onDelete, onMoveToGoal }: WishlistCardProps) => {
-    const { id, name, category, priority, estimatedAmount, url } = item;
+    const { id, name, category, priority, estimatedAmount, url, distributor } = item;
     const [isMenuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,13 +78,18 @@ const WishlistCard = ({ item, onEdit, onDelete, onMoveToGoal }: WishlistCardProp
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full border bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 border-indigo-500/20 dark:border-indigo-500/30">
                         {category}
                     </span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getPriorityClass(priority)}`}>
                         {priority}
                     </span>
+                    {distributor && (
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full border bg-gray-500/10 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400 border-gray-500/20 dark:border-gray-500/30">
+                            {distributor}
+                        </span>
+                    )}
                 </div>
             </div>
 

@@ -19,6 +19,7 @@ export interface WishlistItem {
   priority: Priority;
   estimatedAmount?: number;
   url?: string;
+  distributor?: string;
 }
 
 export interface SavingsGoal {

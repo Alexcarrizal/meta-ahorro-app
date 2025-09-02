@@ -113,6 +113,7 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<Priority>(Priority.Medium);
   const [url, setUrl] = useState('');
+  const [distributor, setDistributor] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -122,12 +123,14 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
         setCategory(itemToEdit.category);
         setPriority(itemToEdit.priority);
         setUrl(itemToEdit.url || '');
+        setDistributor(itemToEdit.distributor || '');
       } else {
         setName('');
         setEstimatedAmount('');
         setCategory('');
         setPriority(Priority.Medium);
         setUrl('');
+        setDistributor('');
       }
     }
   }, [itemToEdit, isOpen]);
@@ -141,6 +144,7 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
       category,
       priority,
       url: url || undefined,
+      distributor: distributor || undefined,
     });
     onClose();
   };
@@ -156,6 +160,10 @@ export const WishlistModal = ({ isOpen, onClose, onSave, itemToEdit }: WishlistM
         <div>
           <label htmlFor="wish-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
           <input type="text" id="wish-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ej. Hogar y Oficina" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required />
+        </div>
+        <div>
+          <label htmlFor="wish-distributor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Distribuidor <span className="text-gray-400">(Opcional)</span></label>
+          <input type="text" id="wish-distributor" value={distributor} onChange={(e) => setDistributor(e.target.value)} placeholder="Ej. Amazon, Mercado Libre" className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
         </div>
         <div>
           <label htmlFor="wish-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Costo Estimado (MXN) <span className="text-gray-400">(Opcional)</span></label>

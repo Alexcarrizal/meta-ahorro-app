@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { SavingsGoal, Payment, Priority, Frequency, WishlistItem } from './types.ts';
 import { GoalModal, ProjectionModal, PaymentModal, ContributionModal, PaymentContributionModal, ConfirmationModal, SettingsModal, ChangePinModal, DayActionModal, WishlistModal } from './components/modals.tsx';
@@ -7,6 +8,7 @@ import WishlistCard from './components/WishlistCard.tsx';
 import CalendarView from './components/CalendarView.tsx';
 import { LayoutDashboardIcon, LaptopIcon, WalletIcon, PlusIcon, CogIcon, CalendarIcon, ClipboardListIcon, AlertTriangleIcon, HistoryIcon, CheckCircle2Icon, ListTodoIcon, PiggyBankIcon, TrendingUpIcon } from './components/icons.tsx';
 import { AuthScreen } from './components/Auth.tsx';
+import { DashboardPaymentItem } from './components/DashboardPaymentItem.tsx';
 
 const GOAL_COLORS = ['rose', 'sky', 'amber', 'emerald', 'indigo', 'purple'];
 const PAYMENT_COLORS = ['teal', 'cyan', 'blue', 'lime', 'fuchsia', 'pink'];
@@ -406,11 +408,22 @@ const App = () => {
   }, [payments, paymentFilter]);
 
 
-  const sortedWishlist = useMemo(() => {
-      return [...wishlist].sort((a, b) => {
-          const priorityOrder = { [Priority.High]: 1, [Priority.Medium]: 2, [Priority.Low]: 3 };
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
-      });
+  const groupedAndSortedWishlist = useMemo(() => {
+    const grouped: Record<string, WishlistItem[]> = wishlist.reduce((acc, item) => {
+      acc[item.category] = acc[item.category] || [];
+      acc[item.category].push(item);
+      return acc;
+    }, {} as Record<string, WishlistItem[]>);
+
+    const priorityOrder = { [Priority.High]: 1, [Priority.Medium]: 2, [Priority.Low]: 3 };
+
+    Object.values(grouped).forEach(items => {
+      items.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    });
+
+    return Object.entries(grouped)
+      .sort(([catA], [catB]) => catA.localeCompare(catB))
+      .map(([category, items]) => ({ category, items }));
   }, [wishlist]);
 
   const handleSaveGoal = useCallback((goalData: Omit<SavingsGoal, 'savedAmount' | 'createdAt' | 'projection' | 'color'> & { id?: string }) => {
@@ -695,6 +708,11 @@ const App = () => {
       setSelectedDateForModal(date);
       setDayActionModalOpen(true);
   }, []);
+
+  const handleDashboardPaymentClick = (payment: Payment) => {
+    setActiveTab('payments');
+    handleOpenPaymentContributionModal(payment);
+  };
   
   const handleCloseGoalModal = useCallback(() => { setGoalModalOpen(false); setGoalToEdit(null); }, []);
   const handleCloseProjectionModal = useCallback(() => { setProjectionModalOpen(false); setGoalToProject(null); }, []);
@@ -802,20 +820,6 @@ const App = () => {
     );
   };
 
-  const getDueDateStatus = (dueDate: string): { text: string, color: string } => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(dueDate + 'T00:00:00');
-    const diffTime = due.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return { text: `Vencido hace ${Math.abs(diffDays)}d`, color: 'bg-red-500' };
-    if (diffDays === 0) return { text: 'Vence Hoy', color: 'bg-amber-500' };
-    if (diffDays <= 7) return { text: `Vence en ${diffDays}d`, color: 'bg-amber-500' };
-    return { text: `Vence en ${diffDays}d`, color: 'bg-gray-500' };
-  };
-
-
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen font-sans">
       <header className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
@@ -864,24 +868,14 @@ const App = () => {
                          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl">
                             <h3 className="font-bold text-xl mb-4">Próximos Pagos</h3>
                             {dashboardData.upcomingPayments.length > 0 ? (
-                                <ul className="space-y-4">
-                                {dashboardData.upcomingPayments.map(p => {
-                                    const status = getDueDateStatus(p.dueDate);
-                                    return (
-                                    <li key={p.id} className="flex items-center justify-between gap-4 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
-                                        <div className="flex items-center gap-3">
-                                            <span className={`w-3 h-3 rounded-full ${status.color}`}></span>
-                                            <div>
-                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{p.name}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(p.amount - p.paidAmount)}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`font-semibold text-sm ${status.color === 'bg-red-500' ? 'text-red-500' : (status.color === 'bg-amber-500' ? 'text-amber-500' : 'text-gray-600 dark:text-gray-300')}`}>{status.text}</p>
-                                        </div>
-                                    </li>
-                                    );
-                                })}
+                                <ul className="space-y-2">
+                                {dashboardData.upcomingPayments.map(p => (
+                                    <DashboardPaymentItem 
+                                        key={p.id} 
+                                        payment={p} 
+                                        onClick={() => handleDashboardPaymentClick(p)} 
+                                    />
+                                ))}
                                 </ul>
                             ) : (
                                 <p className="text-center py-8 text-gray-500 dark:text-gray-400">¡No hay pagos pendientes!</p>
@@ -959,10 +953,20 @@ const App = () => {
           )}
           
           {activeTab === 'wishlist' && (
-            sortedWishlist.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedWishlist.map(item => (
-                        <WishlistCard key={item.id} item={item} onEdit={handleOpenEditWishlistItem} onDelete={handleDeleteWishlistItem} onMoveToGoal={handleMoveToGoal} />
+            groupedAndSortedWishlist.length > 0 ? (
+                <div className="space-y-8">
+                    {groupedAndSortedWishlist.map(({ category, items }) => (
+                        <div key={category}>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="w-2 h-8 bg-indigo-500 rounded-full"></span>
+                                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{category}</h3>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {items.map(item => (
+                                    <WishlistCard key={item.id} item={item} onEdit={handleOpenEditWishlistItem} onDelete={handleDeleteWishlistItem} onMoveToGoal={handleMoveToGoal} />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : (
